@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,17 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -34,16 +23,22 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { MoreHorizontal, Plus, Search, Download, Upload, Filter, Loader2 } from "lucide-react"
+import { MoreHorizontal, Plus, Search, Loader2 } from "lucide-react"
 import { api } from "@/app/services/api"
 import type { Student } from "../../types"
 import { useToast } from "@/hooks/use-toast"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 
-export default function StudentsModule() {
+interface StudentsModuleProps {
+  students: Student[]
+}
+
+export function StudentsModule({ students: initialStudents }: StudentsModuleProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState<Student[]>(initialStudents)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [newStudent, setNewStudent] = useState<Omit<Student, "id">>({
     name: "",
@@ -58,29 +53,6 @@ export default function StudentsModule() {
   const [studentsPerPage] = useState(5)
 
   const { toast } = useToast()
-
-  // Fetch students data
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setLoading(true)
-        const data = await api.getStudents()
-        setStudents(data)
-        setError(null)
-      } catch (err) {
-        setError("Failed to fetch students data")
-        toast({
-          title: "Error",
-          description: "Failed to load students data. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchStudents()
-  }, [toast])
 
   // Filter students based on search query
   const filteredStudents = students.filter(
@@ -189,196 +161,102 @@ export default function StudentsModule() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold">Student Management</h2>
-        <div className="flex flex-wrap gap-2">
-          <div className="relative">
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Students</CardTitle>
+          <CardDescription>Manage student records and information</CardDescription>
+        </div>
+        <Link href="/dashboard/students/create">
+          <Button size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Student
+          </Button>
+        </Link>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center mb-4">
+          <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search students..."
-              className="w-full sm:w-[250px] pl-8"
+              className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" className="gap-1">
-            <Download className="h-4 w-4" /> Export
-          </Button>
-          <Button variant="outline" className="gap-1">
-            <Upload className="h-4 w-4" /> Import
-          </Button>
-          <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-1">
-                <Plus className="h-4 w-4" /> Add Student
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Student</DialogTitle>
-                <DialogDescription>Enter the details of the new student below.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="John Smith"
-                    className="col-span-3"
-                    value={newStudent.name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="student@example.com"
-                    className="col-span-3"
-                    value={newStudent.email}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="department" className="text-right">
-                    Department
-                  </Label>
-                  <Select onValueChange={(value) => handleSelectChange("department", value)}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Computer Science">Computer Science</SelectItem>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="Business">Business</SelectItem>
-                      <SelectItem value="Medicine">Medicine</SelectItem>
-                      <SelectItem value="Arts">Arts</SelectItem>
-                      <SelectItem value="Sciences">Sciences</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="year" className="text-right">
-                    Year
-                  </Label>
-                  <Select onValueChange={(value) => handleSelectChange("year", value)}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1st">1st Year</SelectItem>
-                      <SelectItem value="2nd">2nd Year</SelectItem>
-                      <SelectItem value="3rd">3rd Year</SelectItem>
-                      <SelectItem value="4th">4th Year</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="gpa" className="text-right">
-                    GPA
-                  </Label>
-                  <Input
-                    id="gpa"
-                    placeholder="0.0"
-                    className="col-span-3"
-                    value={newStudent.gpa}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateStudent} disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead>GPA</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  <div className="flex justify-center items-center">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    Loading students...
-                  </div>
-                </TableCell>
+                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Year</TableHead>
+                <TableHead>GPA</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : error ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-red-500">
-                  {error}
-                </TableCell>
-              </TableRow>
-            ) : currentStudents.length > 0 ? (
-              currentStudents.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.id}</TableCell>
-                  <TableCell>{student.name}</TableCell>
-                  <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.department}</TableCell>
-                  <TableCell>{student.year}</TableCell>
-                  <TableCell>{student.gpa}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit student</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteStudent(student.id)}>
-                          Delete student
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <div className="flex justify-center items-center">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Loading students...
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No students found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-red-500">
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : currentStudents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    No students found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                currentStudents.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell className="font-medium">{student.id}</TableCell>
+                    <TableCell>{student.name}</TableCell>
+                    <TableCell>{student.email}</TableCell>
+                    <TableCell>{student.department}</TableCell>
+                    <TableCell>{student.year}</TableCell>
+                    <TableCell>{student.gpa}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>View details</DropdownMenuItem>
+                          <DropdownMenuItem>Edit student</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteStudent(student.id)}>
+                            Delete student
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
 
       {filteredStudents.length > 0 && (
         <Pagination>
@@ -417,7 +295,7 @@ export default function StudentsModule() {
           </PaginationContent>
         </Pagination>
       )}
-    </div>
+    </Card>
   )
 }
 

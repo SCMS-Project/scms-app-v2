@@ -4,7 +4,17 @@ export interface Student {
   email: string
   department: string
   year: string
-  gpa: string
+  gpa?: string
+  // Additional fields
+  title?: string
+  fullName?: string
+  firstName?: string
+  lastName?: string
+  dateOfBirth?: string
+  phoneNumber?: string
+  nicNumber?: string
+  addressType?: string
+  addressDetails?: string
 }
 
 // Lecturer interface (renamed from Faculty)

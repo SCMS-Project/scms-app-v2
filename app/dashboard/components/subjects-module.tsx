@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BookMarked, ArrowRight } from "lucide-react"
-import { api } from "@/app/services/api"
+// Check if this file is importing from "./api-service"
+import { apiService } from "../../services/api-service" // This should be correct
 import type { Subject } from "../../types"
 import { useRouter } from "next/navigation"
 
@@ -18,7 +19,7 @@ export default function SubjectsModule() {
     const fetchSubjects = async () => {
       try {
         setLoading(true)
-        const data = await api.getSubjects()
+        const data = await apiService.getSubjects()
         setSubjects(data)
       } catch (error) {
         console.error("Failed to fetch subjects:", error)

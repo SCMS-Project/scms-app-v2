@@ -54,13 +54,11 @@ export default function Students() {
     gpa: "",
   })
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [studentsPerPage] = useState(5)
 
   const { toast } = useToast()
 
-  // Fetch students data
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -83,7 +81,6 @@ export default function Students() {
     fetchStudents()
   }, [toast])
 
-  // Filter students based on search query
   const filteredStudents = students.filter(
     (student) =>
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,49 +89,40 @@ export default function Students() {
       student.department.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Get current students for pagination
   const indexOfLastStudent = currentPage * studentsPerPage
   const indexOfFirstStudent = indexOfLastStudent - studentsPerPage
   const currentStudents = filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent)
 
-  // Calculate total pages
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
 
-  // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
 
-  // Go to next page
   const nextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1)
     }
   }
 
-  // Go to previous page
   const prevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1)
     }
   }
 
-  // Generate page numbers
   const pageNumbers = []
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i)
   }
 
-  // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
     setNewStudent((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle select changes
   const handleSelectChange = (id: string, value: string) => {
     setNewStudent((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle student creation
   const handleCreateStudent = async () => {
     try {
       setLoading(true)
@@ -163,7 +151,6 @@ export default function Students() {
     }
   }
 
-  // Handle student deletion
   const handleDeleteStudent = async (id: string) => {
     try {
       setLoading(true)
@@ -174,7 +161,6 @@ export default function Students() {
         description: "Student deleted successfully",
       })
 
-      // If we delete the last student on the current page, go to the previous page
       if (currentStudents.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1)
       }

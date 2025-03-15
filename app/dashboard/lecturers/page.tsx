@@ -28,7 +28,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -60,6 +59,11 @@ export default function LecturersComponent() {
 
   const { toast } = useToast()
 
+  // Add these state variables after the existing state declarations
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
+  const [totalPages, setTotalPages] = useState(1)
+
   // Fetch lecturers data
   useEffect(() => {
     const fetchLecturers = async () => {
@@ -68,6 +72,7 @@ export default function LecturersComponent() {
         setLoading(true)
         const data = await api.getLecturers() // Changed from getFaculty to getLecturers
         setLecturers(data) // Changed from setFaculty to setLecturers
+        setTotalPages(Math.ceil(data.length / itemsPerPage))
         setError(null)
       } catch (err) {
         setError("Failed to fetch lecturers data") // Changed from faculty to lecturers
@@ -82,7 +87,7 @@ export default function LecturersComponent() {
     }
 
     fetchLecturers() // Changed from fetchFaculty to fetchLecturers
-  }, [toast])
+  }, [toast, itemsPerPage])
 
   // Filter lecturers based on search query
   const filteredLecturers = lecturers.filter(
@@ -94,6 +99,18 @@ export default function LecturersComponent() {
       member.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.position.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  // Add this function to handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Add this to get the current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredLecturers.slice(startIndex, endIndex)
+  }
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,42 +316,36 @@ export default function LecturersComponent() {
                   {error}
                 </TableCell>
               </TableRow>
-            ) : filteredLecturers.length > 0 ? ( // Changed from filteredFaculty to filteredLecturers
-              filteredLecturers.map(
-                (
-                  member, // Changed from filteredFaculty to filteredLecturers
-                ) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.id}</TableCell>
-                    <TableCell>{member.name}</TableCell>
-                    <TableCell>{member.email}</TableCell>
-                    <TableCell>{member.department}</TableCell>
-                    <TableCell>{member.position}</TableCell>
-                    <TableCell>{member.courses}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>View details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit lecturer</DropdownMenuItem> {/* Changed from faculty to lecturer */}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteLecturer(member.id)}>
-                            {" "}
-                            {/* Changed from handleDeleteFaculty to handleDeleteLecturer */}
-                            Delete lecturer {/* Changed from faculty to lecturer */}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ),
-              )
+            ) : filteredLecturers.length > 0 ? (
+              getCurrentPageItems().map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell className="font-medium">{member.id}</TableCell>
+                  <TableCell>{member.name}</TableCell>
+                  <TableCell>{member.email}</TableCell>
+                  <TableCell>{member.department}</TableCell>
+                  <TableCell>{member.position}</TableCell>
+                  <TableCell>{member.courses}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>View details</DropdownMenuItem>
+                        <DropdownMenuItem>Edit lecturer</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteLecturer(member.id)}>
+                          Delete lecturer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
@@ -349,21 +360,29 @@ export default function LecturersComponent() {
       <Pagination>
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious href="#" />
+            <PaginationPrevious
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
           </PaginationItem>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <PaginationItem key={page}>
+              <PaginationLink
+                onClick={() => handlePageChange(page)}
+                isActive={currentPage === page}
+                className="cursor-pointer"
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+
           <PaginationItem>
-            <PaginationLink href="#" isActive>
-              1
-            </PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink href="#">2</PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationEllipsis />
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationNext href="#" />
+            <PaginationNext
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
           </PaginationItem>
         </PaginationContent>
       </Pagination>

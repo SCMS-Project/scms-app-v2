@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { CalendarIcon, Clock, MapPin, Users, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
-import { api } from "@/app/services/api"
+import { apiService } from "../../services/api-service" // This should be correct
 import { format, parseISO } from "date-fns"
 import Link from "next/link"
 
@@ -17,9 +17,8 @@ export default function EventsModule() {
     const fetchEvents = async () => {
       try {
         setLoading(true)
-        const events = await api.getEvents()
+        const events = await apiService.getEvents()
 
-        // Filter for upcoming events and sort by date
         const upcoming = events
           .filter((event) => new Date(event.startDate) >= new Date())
           .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())

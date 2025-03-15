@@ -1,58 +1,71 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, BarChart3, Bell, Clock } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { api } from "@/app/services/api"
+import type { DashboardStats, Event } from "@/app/types"
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
+  const [recentEvents, setRecentEvents] = useState<Event[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Mock data for metrics
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true)
+
+        // Fetch dashboard stats
+        const stats = await api.getDashboardStats()
+        setDashboardStats(stats)
+
+        // Fetch events
+        const events = await api.getEvents()
+
+        // Sort events by date
+        const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        // Split into recent and upcoming events
+        const currentDate = new Date()
+        const upcoming = sortedEvents.filter((event) => new Date(event.date) > currentDate)
+        const recent = sortedEvents.filter((event) => new Date(event.date) <= currentDate)
+
+        setUpcomingEvents(upcoming.slice(0, 4)) // Get first 4 upcoming events
+        setRecentEvents(recent.slice(0, 4)) // Get first 4 recent events
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
   const metrics = {
-    totalEvents: { value: 245, change: "+12% from last month" },
-    activeUsers: { value: "1,892", change: "+5% from last month" },
-    resourceUtilization: { value: "78%", change: "+18% from last month" },
-    announcements: { value: 32, change: "+2 from yesterday" },
+    totalEvents: {
+      value: dashboardStats?.activeEvents || 0,
+      change: "+12% from last month",
+    },
+    activeUsers: {
+      value: dashboardStats?.totalStudents || 0,
+      change: "+5% from last month",
+    },
+    resourceUtilization: {
+      value: `${dashboardStats?.resourceUtilization || 0}%`,
+      change: "+18% from last month",
+    },
+    announcements: {
+      value: 32,
+      change: "+2 from yesterday",
+    },
   }
-
-  // Mock data for upcoming events
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: "Computer Science Seminar",
-      time: "Today, 2:00 PM",
-      location: "Building A, Room 101",
-      organizer: "Dr. Smith",
-      category: "Academic",
-    },
-    {
-      id: 2,
-      title: "Student Council Meeting",
-      time: "Tomorrow, 10:00 AM",
-      location: "Student Center",
-      organizer: "Jane Doe",
-      category: "Administrative",
-    },
-    {
-      id: 3,
-      title: "Campus Art Exhibition",
-      time: "Mar 16, 3:00 PM",
-      location: "Art Gallery",
-      organizer: "Prof. Johnson",
-      category: "Cultural",
-    },
-    {
-      id: 4,
-      title: "Basketball Tournament",
-      time: "Mar 17, 5:00 PM",
-      location: "Sports Complex",
-      organizer: "Coach Williams",
-      category: "Sports",
-    },
-  ]
 
   const getCategoryStyle = (category: string) => {
     switch (category) {
@@ -70,6 +83,14 @@ export function AdminDashboard() {
       default:
         return "bg-gray-500/10 text-gray-500"
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   return (
@@ -166,12 +187,12 @@ export function AdminDashboard() {
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium leading-none">{event.title}</p>
-                          <Badge className={`${getCategoryStyle(event.category)}`} variant="secondary">
-                            {event.category}
+                          <Badge className={`${getCategoryStyle(event.type)}`} variant="secondary">
+                            {event.type}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground flex items-center">
-                          <Clock className="mr-1 h-3 w-3" /> {event.time} • {event.location}
+                          <Clock className="mr-1 h-3 w-3" /> {event.startTime} • {event.location}
                         </p>
                         <p className="text-sm text-muted-foreground">Organized by: {event.organizer}</p>
                       </div>
@@ -181,6 +202,7 @@ export function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+
           {/* Recent Events */}
           <Card>
             <CardHeader>
@@ -189,44 +211,7 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  {
-                    id: 1,
-                    title: "Lecturers Development Workshop",
-                    date: "Mar 10, 2025",
-                    location: "Conference Hall",
-                    attendees: 45,
-                    organizer: "Dr. Anderson",
-                    category: "Training",
-                  },
-                  {
-                    id: 2,
-                    title: "Annual Science Fair",
-                    date: "Mar 8, 2025",
-                    location: "Main Campus",
-                    attendees: 320,
-                    organizer: "Science Department",
-                    category: "Academic",
-                  },
-                  {
-                    id: 3,
-                    title: "Alumni Networking Event",
-                    date: "Mar 5, 2025",
-                    location: "Alumni Center",
-                    attendees: 120,
-                    organizer: "Alumni Association",
-                    category: "Networking",
-                  },
-                  {
-                    id: 4,
-                    title: "Campus Sustainability Meeting",
-                    date: "Mar 3, 2025",
-                    location: "Green Building, Room 202",
-                    attendees: 35,
-                    organizer: "Sustainability Committee",
-                    category: "Administrative",
-                  },
-                ].map((event) => (
+                {recentEvents.map((event) => (
                   <div key={event.id} className="flex items-start space-x-4">
                     <Avatar className="mt-1">
                       <AvatarImage src={`/placeholder.svg?height=40&width=40`} />
@@ -235,17 +220,8 @@ export function AdminDashboard() {
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium leading-none">{event.title}</p>
-                        <Badge
-                          className={`${getCategoryStyle(
-                            event.category === "Training"
-                              ? "Administrative"
-                              : event.category === "Networking"
-                                ? "Sports"
-                                : event.category,
-                          )}`}
-                          variant="secondary"
-                        >
-                          {event.category}
+                        <Badge className={`${getCategoryStyle(event.type)}`} variant="secondary">
+                          {event.type}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">

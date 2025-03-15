@@ -56,11 +56,9 @@ export default function CoursesModule() {
 
   const { toast } = useToast()
 
-  // Add pagination state and logic
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
 
-  // Fetch courses data
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -83,7 +81,6 @@ export default function CoursesModule() {
     fetchCourses()
   }, [toast])
 
-  // Filter courses based on search query
   const filteredCourses = courses.filter(
     (course) =>
       course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,42 +89,35 @@ export default function CoursesModule() {
       course.instructor.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Pagination logic
   const indexOfLastCourse = currentPage * itemsPerPage
   const indexOfFirstCourse = indexOfLastCourse - itemsPerPage
   const currentCourses = filteredCourses.slice(indexOfFirstCourse, indexOfLastCourse)
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
 
-  // Handle page changes
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber)
   }
 
-  // Generate page numbers
   const pageNumbers = []
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i)
   }
 
-  // Reset pagination when search changes significantly
   useEffect(() => {
     if (currentPage > Math.ceil(filteredCourses.length / itemsPerPage) && currentPage > 1) {
       setCurrentPage(1)
     }
   }, [searchQuery, filteredCourses.length, currentPage, itemsPerPage])
 
-  // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
     setNewCourse((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle select changes
   const handleSelectChange = (id: string, value: string) => {
     setNewCourse((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle numeric input changes
   const handleNumericChange = (id: string, value: string) => {
     const numValue = Number.parseInt(value, 10)
     if (!isNaN(numValue)) {
@@ -135,7 +125,6 @@ export default function CoursesModule() {
     }
   }
 
-  // Handle course creation
   const handleCreateCourse = async () => {
     try {
       setLoading(true)
@@ -165,7 +154,6 @@ export default function CoursesModule() {
     }
   }
 
-  // Handle course deletion
   const handleDeleteCourse = async (id: string) => {
     try {
       setLoading(true)

@@ -59,6 +59,10 @@ export default function Enrollments() {
     status: "Active",
   })
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+
   const { toast } = useToast()
 
   // Fetch enrollments and related data
@@ -100,6 +104,17 @@ export default function Enrollments() {
       enrollment.batchName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       enrollment.id.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredEnrollments.length / itemsPerPage)
+
+  // Get current enrollments for the current page
+  const currentEnrollments = filteredEnrollments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   // Handle select changes
   const handleSelectChange = (id: string, value: string) => {
@@ -148,8 +163,23 @@ export default function Enrollments() {
       }
 
       setLoading(true)
+
+      // Create the enrollment
       const createdEnrollment = await api.createEnrollment(newEnrollment as Omit<Enrollment, "id">)
       setEnrollments((prev) => [...prev, createdEnrollment])
+
+      // Update the batch student count
+      const selectedBatch = batches.find((b) => b.id === newEnrollment.batchId)
+      if (selectedBatch) {
+        // Update the batch with one more student
+        const updatedBatch = await api.updateBatch(selectedBatch.id, {
+          students: selectedBatch.students + 1,
+        })
+
+        // Update the batches state
+        setBatches((prev) => prev.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)))
+      }
+
       setIsAddEnrollmentOpen(false)
       setNewEnrollment({
         studentId: "",
@@ -158,9 +188,10 @@ export default function Enrollments() {
         enrollmentDate: new Date().toISOString().split("T")[0],
         status: "Active",
       })
+
       toast({
         title: "Success",
-        description: "Enrollment added successfully",
+        description: "Enrollment added successfully and student assigned to batch",
       })
     } catch (err) {
       toast({
@@ -177,8 +208,28 @@ export default function Enrollments() {
   const handleDeleteEnrollment = async (id: string) => {
     try {
       setLoading(true)
+
+      // Get the enrollment before deleting it
+      const enrollmentToDelete = enrollments.find((e) => e.id === id)
+
+      // Delete the enrollment
       await api.deleteEnrollment(id)
       setEnrollments((prev) => prev.filter((enrollment) => enrollment.id !== id))
+
+      // If we found the enrollment, update the batch student count
+      if (enrollmentToDelete) {
+        const batchToUpdate = batches.find((b) => b.id === enrollmentToDelete.batchId)
+        if (batchToUpdate && batchToUpdate.students > 0) {
+          // Update the batch with one less student
+          const updatedBatch = await api.updateBatch(batchToUpdate.id, {
+            students: batchToUpdate.students - 1,
+          })
+
+          // Update the batches state
+          setBatches((prev) => prev.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)))
+        }
+      }
+
       toast({
         title: "Success",
         description: "Enrollment deleted successfully",
@@ -197,6 +248,87 @@ export default function Enrollments() {
   // Calculate stats
   const activeEnrollments = enrollments.filter((e) => e.status === "Active").length
   const completedEnrollments = enrollments.filter((e) => e.status === "Completed").length
+
+  // Generate pagination items
+  const renderPaginationItems = () => {
+    const items = []
+
+    // Previous button
+    items.push(
+      <PaginationItem key="prev">
+        <PaginationPrevious
+          onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+        />
+      </PaginationItem>,
+    )
+
+    // First page
+    items.push(
+      <PaginationItem key="page-1">
+        <PaginationLink isActive={currentPage === 1} onClick={() => handlePageChange(1)} className="cursor-pointer">
+          1
+        </PaginationLink>
+      </PaginationItem>,
+    )
+
+    // Ellipsis if needed
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-1">
+          <PaginationEllipsis />
+        </PaginationItem>,
+      )
+    }
+
+    // Pages around current page
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (i <= 1 || i >= totalPages) continue
+      items.push(
+        <PaginationItem key={`page-${i}`}>
+          <PaginationLink isActive={currentPage === i} onClick={() => handlePageChange(i)} className="cursor-pointer">
+            {i}
+          </PaginationLink>
+        </PaginationItem>,
+      )
+    }
+
+    // Ellipsis if needed
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-2">
+          <PaginationEllipsis />
+        </PaginationItem>,
+      )
+    }
+
+    // Last page if there's more than one page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key={`page-${totalPages}`}>
+          <PaginationLink
+            isActive={currentPage === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+            className="cursor-pointer"
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>,
+      )
+    }
+
+    // Next button
+    items.push(
+      <PaginationItem key="next">
+        <PaginationNext
+          onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+        />
+      </PaginationItem>,
+    )
+
+    return items
+  }
 
   return (
     <div className="space-y-6">
@@ -287,7 +419,7 @@ export default function Enrollments() {
                     id="enrollmentDate"
                     type="date"
                     className="col-span-3"
-                    value={newEnrollment.enrollmentDate}
+                    value={newEnrollment.enrollmentDate || ""}
                     onChange={handleDateChange}
                   />
                 </div>
@@ -299,9 +431,6 @@ export default function Enrollments() {
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
-                    {/* Then in the component, replace hardcoded values with constants:
-
-                    // For enrollment status dropdown */}
                     <SelectContent>
                       {ENROLLMENT_STATUS_OPTIONS.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
@@ -365,14 +494,13 @@ export default function Enrollments() {
               <TableHead>Batch</TableHead>
               <TableHead>Enrollment Date</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Grade</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && enrollments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     Loading enrollments...
@@ -381,12 +509,12 @@ export default function Enrollments() {
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-red-500">
+                <TableCell colSpan={7} className="h-24 text-center text-red-500">
                   {error}
                 </TableCell>
               </TableRow>
-            ) : filteredEnrollments.length > 0 ? (
-              filteredEnrollments.map((enrollment) => (
+            ) : currentEnrollments.length > 0 ? (
+              currentEnrollments.map((enrollment) => (
                 <TableRow key={enrollment.id}>
                   <TableCell className="font-medium">{enrollment.id}</TableCell>
                   <TableCell>{enrollment.studentName}</TableCell>
@@ -406,7 +534,6 @@ export default function Enrollments() {
                       {enrollment.status}
                     </span>
                   </TableCell>
-                  <TableCell>{enrollment.grade || "-"}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -419,7 +546,6 @@ export default function Enrollments() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>View details</DropdownMenuItem>
                         <DropdownMenuItem>Edit enrollment</DropdownMenuItem>
-                        <DropdownMenuItem>Update grade</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600"
@@ -434,7 +560,7 @@ export default function Enrollments() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No enrollments found.
                 </TableCell>
               </TableRow>
@@ -443,27 +569,18 @@ export default function Enrollments() {
         </Table>
       </div>
 
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious href="#" />
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink href="#" isActive>
-              1
-            </PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink href="#">2</PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationEllipsis />
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationNext href="#" />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+            {Math.min(currentPage * itemsPerPage, filteredEnrollments.length)} of {filteredEnrollments.length}{" "}
+            enrollments
+          </div>
+          <Pagination>
+            <PaginationContent>{renderPaginationItems()}</PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   )
 }

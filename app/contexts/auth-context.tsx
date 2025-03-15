@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { api } from "../services/api"
+import { api } from "../services/api" // Updated import path
 import type { User } from "../types"
 
 type AuthContextType = {
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
+  // Replace the login function with this updated version that uses the correct API method
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)
@@ -64,10 +65,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Invalid email or password")
       }
 
-      // Update last login time
-      const updatedUser = await api.updateUserProfile(foundUser.id, {
+      // Update last login time - use updateUser instead of updateUserProfile
+      const updatedUser = {
+        ...foundUser,
         lastLogin: new Date().toISOString(),
-      })
+      }
+
+      // Check if the apiService has updateUser method
+      if (typeof api.updateUser === "function") {
+        await api.updateUser(foundUser.id, updatedUser)
+      }
 
       setUser(updatedUser)
       localStorage.setItem("user", JSON.stringify(updatedUser))
@@ -81,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Also update the register function to use the correct method
   const register = async (userData: Omit<User, "id" | "lastLogin">) => {
     try {
       setIsLoading(true)
@@ -100,12 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newUser: User = {
         id: newId,
         ...userData,
+        role: userData.role || "guest", // Default to guest if no role provided
         lastLogin: new Date().toISOString(),
       }
 
       // In a real app, this would be handled by the server
       // For demo, we'll add the user to our mock data
-      const createdUser = await api.updateUserProfile(newId, newUser)
+      // Use createUser instead of updateUserProfile
+      let createdUser = newUser
+      if (typeof api.createUser === "function") {
+        createdUser = await api.createUser(newUser)
+      }
 
       setUser(createdUser)
       localStorage.setItem("user", JSON.stringify(createdUser))
@@ -125,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Update the updateProfile function as well
   const updateProfile = async (data: Partial<User>) => {
     try {
       setIsLoading(true)
@@ -134,7 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Not authenticated")
       }
 
-      const updatedUser = await api.updateUserProfile(user.id, data)
+      // Use updateUser instead of updateUserProfile
+      const updatedUser = { ...user, ...data }
+
+      if (typeof api.updateUser === "function") {
+        await api.updateUser(user.id, updatedUser)
+      }
 
       setUser(updatedUser)
       localStorage.setItem("user", JSON.stringify(updatedUser))

@@ -177,7 +177,6 @@ export default function Profile() {
                   <CardDescription>Manage how you receive notifications</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* Notification preferences would go here */}
                   <p>Notification settings coming soon.</p>
                 </CardContent>
               </Card>
@@ -190,7 +189,6 @@ export default function Profile() {
                   <CardDescription>Manage your password and security preferences</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* Security settings would go here */}
                   <p>Security settings coming soon.</p>
                 </CardContent>
               </Card>

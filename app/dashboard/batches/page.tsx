@@ -36,25 +36,18 @@ import {
 } from "@/components/ui/pagination"
 import { MoreHorizontal, Plus, Search, Filter, Loader2, Users, Calendar } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Update imports to reflect new file paths
 import { api } from "@/app/services/api"
-import type { Batch, Student, Course, Lecturer } from "../../types"
+import type { Batch, Course, Lecturer } from "../../types"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Batches() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddBatchOpen, setIsAddBatchOpen] = useState(false)
-  const [isManageStudentsOpen, setIsManageStudentsOpen] = useState(false)
   const [batches, setBatches] = useState<Batch[]>([])
-  const [students, setStudents] = useState<Student[]>([])
   const [courses, setCourses] = useState<Course[]>([])
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-  const [currentBatch, setCurrentBatch] = useState<Batch | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [newBatch, setNewBatch] = useState<Omit<Batch, "id">>({
@@ -67,8 +60,6 @@ export default function Batches() {
     status: "Active",
     courses: [], // Add courses array
   })
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([])
-  const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [faculty, setFaculty] = useState<Lecturer[]>([])
 
   // Pagination state
@@ -82,13 +73,13 @@ export default function Batches() {
   const validateBatchDetails = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!newBatch.name) newErrors.name = "Batch name is required"
+    if (!newBatch.name?.trim()) newErrors.name = "Batch name is required"
     if (!newBatch.department) newErrors.department = "Department is required"
     if (!newBatch.startDate) newErrors.startDate = "Start date is required"
     if (!newBatch.endDate) newErrors.endDate = "End date is required"
     if (!newBatch.coordinator) newErrors.coordinator = "Coordinator is required"
     if (!newBatch.status) newErrors.status = "Status is required"
-    if (!newBatch.courses || newBatch.courses.length === 0) {
+    if (!Array.isArray(newBatch.courses) || newBatch.courses.length === 0) {
       newErrors.courses = "At least one course must be selected"
     }
 
@@ -117,24 +108,6 @@ export default function Batches() {
     }
 
     fetchBatches()
-  }, [toast])
-
-  // Fetch students data
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const data = await api.getStudents()
-        setStudents(data)
-      } catch (err) {
-        toast({
-          title: "Error",
-          description: "Failed to load students data. Please try again.",
-          variant: "destructive",
-        })
-      }
-    }
-
-    fetchStudents()
   }, [toast])
 
   // Fetch courses data
@@ -201,14 +174,6 @@ export default function Batches() {
     setCurrentPage(page)
   }
 
-  // Filter students based on search query
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
-      student.department.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
-      student.year.toString().includes(studentSearchQuery.toLowerCase()),
-  )
-
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
@@ -220,28 +185,11 @@ export default function Batches() {
     setNewBatch((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle numeric input changes
-  const handleNumericChange = (id: string, value: string) => {
-    const numValue = Number.parseInt(value, 10)
-    if (!isNaN(numValue)) {
-      setNewBatch((prev) => ({ ...prev, [id]: numValue }))
-    }
-  }
-
-  // Handle student selection
-  const handleStudentSelection = (studentId: string) => {
-    setSelectedStudents((prev) => {
-      if (prev.includes(studentId)) {
-        return prev.filter((id) => id !== studentId)
-      } else {
-        return [...prev, studentId]
-      }
-    })
-  }
-
   // Handle batch creation
   const handleCreateBatch = async () => {
-    if (!validateBatchDetails()) {
+    const isValid = validateBatchDetails()
+
+    if (!isValid) {
       toast({
         title: "Error",
         description: "Please fill in all required batch details before proceeding.",
@@ -254,7 +202,7 @@ export default function Batches() {
       setLoading(true)
       const batchData = {
         ...newBatch,
-        students: selectedStudents.length,
+        students: 0, // Start with 0 students - they'll be added via enrollments
       }
 
       const createdBatch = await api.createBatch(batchData)
@@ -270,7 +218,6 @@ export default function Batches() {
         status: "Active",
         courses: [],
       })
-      setSelectedStudents([])
       setErrors({})
       toast({
         title: "Success",
@@ -301,46 +248,6 @@ export default function Batches() {
       toast({
         title: "Error",
         description: "Failed to delete batch. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Open manage students dialog
-  const openManageStudents = (batch: Batch) => {
-    setCurrentBatch(batch)
-    // In a real app, you would fetch the students assigned to this batch
-    // For now, we'll just use an empty array
-    setSelectedStudents([])
-    setIsManageStudentsOpen(true)
-  }
-
-  // Handle updating batch students
-  const handleUpdateBatchStudents = async () => {
-    if (!currentBatch) return
-
-    try {
-      setLoading(true)
-      const updatedBatch = await api.updateBatch(currentBatch.id, {
-        students: selectedStudents.length,
-      })
-
-      setBatches((prev) => prev.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)))
-
-      setIsManageStudentsOpen(false)
-      setCurrentBatch(null)
-      setSelectedStudents([])
-
-      toast({
-        title: "Success",
-        description: "Students assigned to batch successfully",
-      })
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to update batch students. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -463,216 +370,160 @@ export default function Batches() {
                 <DialogDescription>Enter the details of the new batch below.</DialogDescription>
               </DialogHeader>
 
-              <Tabs defaultValue="details">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="details" className="relative">
-                    Batch Details
-                    {Object.keys(errors).length > 0 && (
-                      <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="students" disabled={Object.keys(errors).length > 0}>
-                    Assign Students
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="details" className="space-y-4 py-4">
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="name" className="text-right">
-                        Batch Name <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="col-span-3 space-y-1">
-                        <Input
-                          id="name"
-                          placeholder="CS Batch 2023"
-                          value={newBatch.name}
-                          onChange={handleInputChange}
-                          className={errors.name ? "border-red-500" : ""}
-                        />
-                        {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
-                      </div>
+              <div className="space-y-4 py-4">
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Batch Name <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="col-span-3 space-y-1">
+                      <Input
+                        id="name"
+                        placeholder="CS Batch 2023"
+                        value={newBatch.name}
+                        onChange={handleInputChange}
+                        className={errors.name ? "border-red-500" : ""}
+                      />
+                      {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="department" className="text-right">
-                        Department <span className="text-red-500">*</span>
-                      </Label>
-                      <Select onValueChange={(value) => handleSelectChange("department", value)}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select department" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="department" className="text-right">
+                      Department <span className="text-red-500">*</span>
+                    </Label>
+                    <Select onValueChange={(value) => handleSelectChange("department", value)}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Computer Science">Computer Science</SelectItem>
+                        <SelectItem value="Engineering">Engineering</SelectItem>
+                        <SelectItem value="Business">Business</SelectItem>
+                        <SelectItem value="Medicine">Medicine</SelectItem>
+                        <SelectItem value="Arts">Arts</SelectItem>
+                        <SelectItem value="Sciences">Sciences</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.department && <p className="text-xs text-red-500">{errors.department}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="courses" className="text-right">
+                      Courses <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="col-span-3 space-y-1">
+                      <Select
+                        onValueChange={(value) => {
+                          setNewBatch((prev) => ({
+                            ...prev,
+                            courses: [...(prev.courses || []), value],
+                          }))
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select courses" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Computer Science">Computer Science</SelectItem>
-                          <SelectItem value="Engineering">Engineering</SelectItem>
-                          <SelectItem value="Business">Business</SelectItem>
-                          <SelectItem value="Medicine">Medicine</SelectItem>
-                          <SelectItem value="Arts">Arts</SelectItem>
-                          <SelectItem value="Sciences">Sciences</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {errors.department && <p className="text-xs text-red-500">{errors.department}</p>}
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="courses" className="text-right">
-                        Courses <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="col-span-3 space-y-1">
-                        <Select
-                          onValueChange={(value) => {
-                            setNewBatch((prev) => ({
-                              ...prev,
-                              courses: [...(prev.courses || []), value],
-                            }))
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select courses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {courses.map((course) => (
-                              <SelectItem key={course.id} value={course.id}>
-                                {course.name} ({course.id})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {newBatch.courses && newBatch.courses.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {newBatch.courses.map((courseId) => {
-                              const course = courses.find((c) => c.id === courseId)
-                              return course ? (
-                                <Badge key={course.id} variant="secondary" className="flex items-center gap-1">
-                                  {course.name}
-                                  <button
-                                    onClick={() => {
-                                      setNewBatch((prev) => ({
-                                        ...prev,
-                                        courses: prev.courses?.filter((id) => id !== courseId) || [],
-                                      }))
-                                    }}
-                                    className="ml-1 hover:text-destructive"
-                                  >
-                                    ×
-                                  </button>
-                                </Badge>
-                              ) : null
-                            })}
-                          </div>
-                        )}
-                        {errors.courses && <p className="text-xs text-red-500">{errors.courses}</p>}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="startDate" className="text-right">
-                        Start Date <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="startDate"
-                        type="date"
-                        className="col-span-3"
-                        value={newBatch.startDate}
-                        onChange={handleInputChange}
-                      />
-                      {errors.startDate && <p className="text-xs text-red-500">{errors.startDate}</p>}
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="endDate" className="text-right">
-                        End Date <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="endDate"
-                        type="date"
-                        className="col-span-3"
-                        value={newBatch.endDate}
-                        onChange={handleInputChange}
-                      />
-                      {errors.endDate && <p className="text-xs text-red-500">{errors.endDate}</p>}
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="coordinator" className="text-right">
-                        Coordinator <span className="text-red-500">*</span>
-                      </Label>
-                      <Select onValueChange={(value) => handleSelectChange("coordinator", value)}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select coordinator" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {faculty.map((member) => (
-                            <SelectItem key={member.id} value={member.name}>
-                              {member.name}
+                          {courses.map((course) => (
+                            <SelectItem key={course.id} value={course.id}>
+                              {course.name} ({course.id})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      {errors.coordinator && <p className="text-xs text-red-500">{errors.coordinator}</p>}
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="status" className="text-right">
-                        Status <span className="text-red-500">*</span>
-                      </Label>
-                      <Select onValueChange={(value) => handleSelectChange("status", value)}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                          <SelectItem value="Planned">Planned</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {errors.status && <p className="text-xs text-red-500">{errors.status}</p>}
+                      {newBatch.courses && newBatch.courses.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {newBatch.courses.map((courseId) => {
+                            const course = courses.find((c) => c.id === courseId)
+                            return course ? (
+                              <Badge key={course.id} variant="secondary" className="flex items-center gap-1">
+                                {course.name}
+                                <button
+                                  onClick={() => {
+                                    setNewBatch((prev) => ({
+                                      ...prev,
+                                      courses: prev.courses?.filter((id) => id !== courseId) || [],
+                                    }))
+                                  }}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  ×
+                                </button>
+                              </Badge>
+                            ) : null
+                          })}
+                        </div>
+                      )}
+                      {errors.courses && <p className="text-xs text-red-500">{errors.courses}</p>}
                     </div>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="students" className="py-4">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-medium">Assign Students to Batch</h3>
-                      <Badge variant="outline">{selectedStudents.length} selected</Badge>
-                    </div>
-
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Search students..."
-                        className="pl-8"
-                        value={studentSearchQuery}
-                        onChange={(e) => setStudentSearchQuery(e.target.value)}
-                      />
-                    </div>
-
-                    <ScrollArea className="h-[300px] border rounded-md p-2">
-                      <div className="space-y-2">
-                        {filteredStudents.map((student) => (
-                          <div key={student.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md">
-                            <Checkbox
-                              id={`student-${student.id}`}
-                              checked={selectedStudents.includes(student.id)}
-                              onCheckedChange={() => handleStudentSelection(student.id)}
-                            />
-                            <div className="grid gap-0.5">
-                              <Label htmlFor={`student-${student.id}`} className="text-sm font-medium cursor-pointer">
-                                {student.name}
-                              </Label>
-                              <p className="text-xs text-muted-foreground">
-                                {student.department} • {student.year} Year • GPA: {student.gpa}
-                              </p>
-                            </div>
-                          </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="startDate" className="text-right">
+                      Start Date <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      className="col-span-3"
+                      value={newBatch.startDate}
+                      onChange={handleInputChange}
+                    />
+                    {errors.startDate && <p className="text-xs text-red-500">{errors.startDate}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="endDate" className="text-right">
+                      End Date <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      className="col-span-3"
+                      value={newBatch.endDate}
+                      onChange={handleInputChange}
+                    />
+                    {errors.endDate && <p className="text-xs text-red-500">{errors.endDate}</p>}
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="coordinator" className="text-right">
+                      Coordinator <span className="text-red-500">*</span>
+                    </Label>
+                    <Select onValueChange={(value) => handleSelectChange("coordinator", value)}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select coordinator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {faculty.map((member) => (
+                          <SelectItem key={member.id} value={member.name}>
+                            {member.name}
+                          </SelectItem>
                         ))}
-                      </div>
-                    </ScrollArea>
+                      </SelectContent>
+                    </Select>
+                    {errors.coordinator && <p className="text-xs text-red-500">{errors.coordinator}</p>}
                   </div>
-                </TabsContent>
-              </Tabs>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="status" className="text-right">
+                      Status <span className="text-red-500">*</span>
+                    </Label>
+                    <Select onValueChange={(value) => handleSelectChange("status", value)}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Planned">Planned</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.status && <p className="text-xs text-red-500">{errors.status}</p>}
+                  </div>
+                </div>
+              </div>
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddBatchOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateBatch} disabled={loading || Object.keys(errors).length > 0}>
+                <Button onClick={handleCreateBatch} disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save
                 </Button>
@@ -777,7 +628,6 @@ export default function Batches() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>View details</DropdownMenuItem>
                         <DropdownMenuItem>Edit batch</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openManageStudents(batch)}>Manage students</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteBatch(batch.id)}>
                           Delete batch
@@ -809,66 +659,6 @@ export default function Batches() {
           </Pagination>
         </div>
       )}
-
-      {/* Manage Students Dialog */}
-      <Dialog open={isManageStudentsOpen} onOpenChange={setIsManageStudentsOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Manage Students for {currentBatch?.name}</DialogTitle>
-            <DialogDescription>Assign or remove students from this batch.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Students</h3>
-              <Badge variant="outline">{selectedStudents.length} selected</Badge>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search students..."
-                className="pl-8"
-                value={studentSearchQuery}
-                onChange={(e) => setStudentSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <ScrollArea className="h-[300px] border rounded-md p-2">
-              <div className="space-y-2">
-                {filteredStudents.map((student) => (
-                  <div key={student.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md">
-                    <Checkbox
-                      id={`manage-student-${student.id}`}
-                      checked={selectedStudents.includes(student.id)}
-                      onCheckedChange={() => handleStudentSelection(student.id)}
-                    />
-                    <div className="grid gap-0.5">
-                      <Label htmlFor={`manage-student-${student.id}`} className="text-sm font-medium cursor-pointer">
-                        {student.name}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {student.department} • {student.year} Year • GPA: {student.gpa}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsManageStudentsOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateBatchStudents} disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

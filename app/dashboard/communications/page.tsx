@@ -12,9 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-
-// Import the API service
-import { api } from "@/app/services/api"
+import { mockApi } from "@/app/services/mock-api"
 import type { Message, Notification } from "@/app/types"
 import { useAuth } from "@/app/contexts/auth-context"
 
@@ -36,18 +34,19 @@ export default function Communications() {
   // Fetch messages and notifications data
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return
+      if (!user?.id) return
 
       try {
         setLoading(true)
+        setError(null)
         const [messagesData, notificationsData] = await Promise.all([
-          api.getMessages(user.id),
-          api.getNotifications(user.id),
+          mockApi.getMessages(user.id),
+          mockApi.getNotifications(user.id),
         ])
         setMessages(messagesData)
         setNotifications(notificationsData)
-        setError(null)
       } catch (err) {
+        console.error("Error fetching communications data:", err)
         setError("Failed to fetch communications data")
         toast({
           title: "Error",
@@ -60,7 +59,7 @@ export default function Communications() {
     }
 
     fetchData()
-  }, [user, toast])
+  }, [user?.id, toast])
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -69,22 +68,28 @@ export default function Communications() {
   }
 
   // Handle select changes
-  const handleSelectChange = (id: string, value: string) => {
-    setNewMessage((prev) => ({ ...prev, [id]: value }))
+  const handleSelectChange = (value: string) => {
+    // Find the recipient name based on the selected ID
+    const recipient = mockUsers.find((user) => user.id === value)
+    setNewMessage((prev) => ({
+      ...prev,
+      recipientId: value,
+      recipientName: recipient?.name || "",
+    }))
   }
 
   // Handle message sending
   const handleSendMessage = async () => {
-    if (!user) return
+    if (!user?.id || !newMessage.recipientId) return
 
     try {
       setLoading(true)
-      const sentMessage = await api.sendMessage({
+      const sentMessage = await mockApi.sendMessage({
         senderId: user.id,
-        senderName: user.name,
+        senderName: user.name || "Unknown User",
         ...newMessage,
       })
-      setMessages((prev) => [...prev, sentMessage])
+      setMessages((prev) => [sentMessage, ...prev])
       toast({
         title: "Success",
         description: "Message sent successfully",
@@ -111,7 +116,7 @@ export default function Communications() {
   const handleDeleteMessage = async (id: string) => {
     try {
       setLoading(true)
-      await api.deleteMessage(id)
+      await mockApi.deleteMessage(id)
       setMessages((prev) => prev.filter((message) => message.id !== id))
       toast({
         title: "Success",
@@ -132,7 +137,7 @@ export default function Communications() {
   const handleDeleteNotification = async (id: string) => {
     try {
       setLoading(true)
-      await api.deleteNotification(id)
+      await mockApi.deleteNotification(id)
       setNotifications((prev) => prev.filter((notification) => notification.id !== id))
       toast({
         title: "Success",
@@ -152,8 +157,7 @@ export default function Communications() {
   // Handle marking notification as read
   const handleMarkAsRead = async (id: string) => {
     try {
-      setLoading(true)
-      const updatedNotification = await api.markNotificationAsRead(id)
+      const updatedNotification = await mockApi.markNotificationAsRead(id)
       setNotifications((prev) =>
         prev.map((notification) => (notification.id === id ? updatedNotification : notification)),
       )
@@ -163,10 +167,17 @@ export default function Communications() {
         description: "Failed to mark notification as read. Please try again.",
         variant: "destructive",
       })
-    } finally {
-      setLoading(false)
     }
   }
+
+  // Mock users for the recipient select
+  const mockUsers = [
+    { id: "U001", name: "Admin User" },
+    { id: "U002", name: "Dr. Robert Chen" },
+    { id: "U003", name: "Dr. Sarah Johnson" },
+    { id: "U004", name: "John Smith" },
+    { id: "U005", name: "Emma Johnson" },
+  ]
 
   return (
     <Tabs defaultValue="messages" className="w-full">
@@ -183,21 +194,27 @@ export default function Communications() {
               <CardDescription>Send a message to students, faculty, or staff</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleSendMessage()
+                }}
+              >
                 <div className="space-y-2">
                   <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     To
                   </label>
-                  <Select onValueChange={(value) => handleSelectChange("recipientId", value)}>
+                  <Select onValueChange={handleSelectChange} value={newMessage.recipientId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select recipient" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="U001">Admin User</SelectItem>
-                      <SelectItem value="U002">Dr. Robert Chen</SelectItem>
-                      <SelectItem value="U003">Dr. Sarah Johnson</SelectItem>
-                      <SelectItem value="U004">John Smith</SelectItem>
-                      <SelectItem value="U005">Emma Johnson</SelectItem>
+                      {mockUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -225,8 +242,8 @@ export default function Communications() {
                   />
                 </div>
                 <Button
+                  type="submit"
                   className="w-full"
-                  onClick={handleSendMessage}
                   disabled={loading || !newMessage.recipientId || !newMessage.subject || !newMessage.content}
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -256,7 +273,9 @@ export default function Communications() {
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex items-start space-x-4 rounded-md border p-4 ${!message.isRead ? "bg-muted/50" : ""}`}
+                      className={`flex items-start space-x-4 rounded-md border p-4 ${
+                        !message.isRead ? "bg-muted/50" : ""
+                      }`}
                     >
                       <Avatar>
                         <AvatarImage src={`/placeholder.svg?height=40&width=40`} alt={message.senderName} />
@@ -367,7 +386,7 @@ export default function Communications() {
   )
 }
 
-function Badge({ className, variant, ...props }) {
+function Badge({ className, variant, ...props }: { className?: string; variant?: "outline" }) {
   return (
     <div
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${

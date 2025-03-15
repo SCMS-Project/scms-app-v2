@@ -1,5 +1,4 @@
 import type React from "react"
-
 import { AuthProvider } from "./contexts/auth-context"
 import { ThemeProvider } from "next-themes"
 import "./globals.css"

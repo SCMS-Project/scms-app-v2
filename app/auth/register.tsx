@@ -13,16 +13,32 @@ import { Loader2 } from "lucide-react"
 import { useAuth } from "../contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
-import { DEPARTMENTS, ROLE_OPTIONS, USER_ROLES, type UserRole } from "../constants/roles"
+
+const TITLES = [
+  { value: "mr", label: "Mr." },
+  { value: "mrs", label: "Mrs." },
+  { value: "ms", label: "Ms." },
+  { value: "dr", label: "Dr." },
+]
+
+const RESIDENCE_TYPES = [
+  { value: "home", label: "Home" },
+  { value: "hostel", label: "Hostel" },
+  { value: "rental", label: "Rental" },
+]
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    name: "",
+    title: "",
+    fullName: "",
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
     email: "",
-    password: "",
-    confirmPassword: "",
-    role: USER_ROLES.STUDENT as UserRole,
-    department: "",
+    phoneNumber: "",
+    nicNumber: "",
+    addressType: "",
+    addressDetails: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -42,8 +58,7 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate form
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.email || !formData.firstName || !formData.lastName) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -52,30 +67,13 @@ export default function Register() {
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (formData.role !== USER_ROLES.ADMIN && !formData.department) {
-      toast({
-        title: "Error",
-        description: "Please select a department",
-        variant: "destructive",
-      })
-      return
-    }
-
     try {
       setIsSubmitting(true)
 
-      // In a real app, we would send the password to the server
-      // For this demo, we'll omit it from the user object
-      const { confirmPassword, password, ...userData } = formData
+      const userData = {
+        ...formData,
+        role: "guest",
+      }
 
       await register(userData)
 
@@ -98,7 +96,7 @@ export default function Register() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
           <CardDescription>Enter your information to create an account</CardDescription>
@@ -106,68 +104,78 @@ export default function Register() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="John Smith" value={formData.name} onChange={handleInputChange} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john.smith@example.com"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                onValueChange={(value) => handleSelectChange("role", value as UserRole)}
-                defaultValue={USER_ROLES.STUDENT}
-              >
+              <Label htmlFor="title">Title</Label>
+              <Select onValueChange={(value) => handleSelectChange("title", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your role" />
+                  <SelectValue placeholder="Select your title" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {TITLES.map((title) => (
+                    <SelectItem key={title.value} value={title.value}>
+                      {title.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            {formData.role !== USER_ROLES.ADMIN && (
+
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input id="fullName" value={formData.fullName} onChange={handleInputChange} required />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select onValueChange={(value) => handleSelectChange("department", value)}>
+                <Label htmlFor="firstName">First Name</Label>
+                <Input id="firstName" value={formData.firstName} onChange={handleInputChange} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input id="lastName" value={formData.lastName} onChange={handleInputChange} required />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Input id="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} required />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={formData.email} onChange={handleInputChange} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={handleInputChange} required />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nicNumber">NIC Number</Label>
+              <Input id="nicNumber" value={formData.nicNumber} onChange={handleInputChange} required />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="addressType">Address/Residence Type</Label>
+                <Select onValueChange={(value) => handleSelectChange("addressType", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your department" />
+                    <SelectValue placeholder="Select residence type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENTS.map((dept) => (
-                      <SelectItem key={dept.value} value={dept.value}>
-                        {dept.label}
+                    {RESIDENCE_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={formData.password} onChange={handleInputChange} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="addressDetails">Address Details</Label>
+                <Input id="addressDetails" value={formData.addressDetails} onChange={handleInputChange} required />
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
