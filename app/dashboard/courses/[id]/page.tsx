@@ -179,8 +179,14 @@ export default function CourseDetail() {
               <p className="text-lg font-semibold">{course.credits}</p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Instructor</h3>
-              <p className="text-lg font-semibold">{course.instructor}</p>
+              <h3 className="text-sm font-medium text-muted-foreground">Lecturers</h3>
+              <div className="space-y-1">
+                {course.lecturers.map((lecturer, index) => (
+                  <p key={index} className="text-lg font-semibold">
+                    {lecturer}
+                  </p>
+                ))}
+              </div>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Status</h3>

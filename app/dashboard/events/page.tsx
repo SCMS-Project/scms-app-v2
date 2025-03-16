@@ -284,6 +284,17 @@ export default function Events() {
     }))
   }
 
+  // Helper function to safely format dates
+  const safeFormatDate = (dateString: string | undefined, formatString: string): string => {
+    if (!dateString) return "N/A"
+    try {
+      return format(parseISO(dateString), formatString)
+    } catch (error) {
+      console.error(`Error formatting date: ${dateString}`, error)
+      return "Invalid Date"
+    }
+  }
+
   // Filter events based on search query, filter type, filter status, and selected date
   useEffect(() => {
     let filtered = [...events]
@@ -313,32 +324,57 @@ export default function Events() {
     // Apply date filter for calendar view
     if (viewMode === "calendar" && date) {
       if (calendarView === "day") {
-        filtered = filtered.filter((event) => isSameDay(parseISO(event.startDate), date))
+        filtered = filtered.filter((event) => {
+          if (!event.startDate) return false
+          try {
+            return isSameDay(parseISO(event.startDate), date)
+          } catch (error) {
+            console.error(`Error parsing date for event ${event.id}:`, error)
+            return false
+          }
+        })
       } else if (calendarView === "week") {
         const weekEnd = addDays(weekStartDate, 6)
         filtered = filtered.filter((event) => {
-          const eventDate = parseISO(event.startDate)
-          return (
-            (isAfter(eventDate, weekStartDate) || isSameDay(eventDate, weekStartDate)) &&
-            (isBefore(eventDate, weekEnd) || isSameDay(eventDate, weekEnd))
-          )
+          if (!event.startDate) return false
+          try {
+            const eventDate = parseISO(event.startDate)
+            return (
+              (isAfter(eventDate, weekStartDate) || isSameDay(eventDate, weekStartDate)) &&
+              (isBefore(eventDate, weekEnd) || isSameDay(eventDate, weekEnd))
+            )
+          } catch (error) {
+            console.error(`Error parsing date for event ${event.id}:`, error)
+            return false
+          }
         })
-      } else {
-        // Month view - this would be more complex in a real implementation
-        // For now, we'll just show all events
       }
+      // Month view logic remains the same
     }
 
     // For upcoming view, only show future events
     if (viewMode === "upcoming") {
       filtered = filtered.filter((event) => {
-        const eventDate = parseISO(event.startDate)
-        return isAfter(eventDate, new Date()) || isToday(eventDate)
+        if (!event.startDate) return false
+        try {
+          const eventDate = parseISO(event.startDate)
+          return isAfter(eventDate, new Date()) || isToday(eventDate)
+        } catch (error) {
+          console.error(`Error parsing date for event ${event.id}:`, error)
+          return false
+        }
       })
 
       // Sort by date (closest first)
       filtered.sort((a, b) => {
-        return parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()
+        try {
+          if (!a.startDate) return 1
+          if (!b.startDate) return -1
+          return parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()
+        } catch (error) {
+          console.error("Error sorting dates:", error)
+          return 0
+        }
       })
     }
 
@@ -671,7 +707,9 @@ export default function Events() {
   }
 
   // Get event type badge variant
-  const getEventTypeBadge = (type: string) => {
+  const getEventTypeBadge = (type: string | undefined) => {
+    if (!type) return "default" // Default variant if type is undefined
+
     switch (type.toLowerCase()) {
       case "academic":
         return "default"
@@ -693,7 +731,9 @@ export default function Events() {
   }
 
   // Get event status badge variant
-  const getEventStatusBadge = (status: string) => {
+  const getEventStatusBadge = (status: string | undefined) => {
+    if (!status) return "outline" // Default variant if status is undefined
+
     switch (status.toLowerCase()) {
       case "upcoming":
         return "outline"
@@ -705,6 +745,30 @@ export default function Events() {
         return "destructive"
       default:
         return "outline"
+    }
+  }
+
+  // Get event type background color
+  const getEventTypeBackground = (type: string | undefined) => {
+    if (!type) return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300" // Default background if type is undefined
+
+    switch (type.toLowerCase()) {
+      case "academic":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+      case "social":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      case "career":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+      case "workshop":
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+      case "seminar":
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300"
+      case "guest lecture":
+        return "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300"
+      case "student council":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
     }
   }
 
@@ -730,14 +794,17 @@ export default function Events() {
               <div className="flex items-center text-sm mb-2">
                 <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>
-                  {format(parseISO(event.startDate), "MMMM d, yyyy")}
-                  {event.startDate !== event.endDate && ` - ${format(parseISO(event.endDate), "MMMM d, yyyy")}`}
+                  {event.startDate ? safeFormatDate(event.startDate, "MMMM d, yyyy") : "Date not set"}
+                  {event.startDate &&
+                    event.endDate &&
+                    event.startDate !== event.endDate &&
+                    ` - ${safeFormatDate(event.endDate, "MMMM d, yyyy")}`}
                 </span>
               </div>
               <div className="flex items-center text-sm mb-2">
                 <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>
-                  {event.startTime} - {event.endTime}
+                  {event.startTime || "Time not set"} {event.endTime && `- ${event.endTime}`}
                 </span>
               </div>
               <div className="flex items-center text-sm">
@@ -818,7 +885,19 @@ export default function Events() {
 
   // Render calendar day cell
   const renderCalendarDayCell = (date: Date) => {
-    const dayEvents = filteredEvents.filter((event) => isSameDay(parseISO(event.startDate), date))
+    // Add null checks and proper date parsing
+    const dayEvents = filteredEvents.filter((event) => {
+      // Check if event.startDate exists before trying to parse it
+      if (!event.startDate) return false
+
+      try {
+        return isSameDay(parseISO(event.startDate), date)
+      } catch (error) {
+        // If parsing fails, log the error and skip this event
+        console.error(`Error parsing date for event ${event.id}:`, error)
+        return false
+      }
+    })
 
     return (
       <div className="min-h-[100px] p-1">
@@ -835,75 +914,6 @@ export default function Events() {
           ))}
           {dayEvents.length > 3 && <div className="text-xs text-muted-foreground">+{dayEvents.length - 3} more</div>}
         </div>
-      </div>
-    )
-  }
-
-  // Get event type background color
-  const getEventTypeBackground = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "academic":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-      case "social":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-      case "career":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
-      case "workshop":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
-      case "seminar":
-        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300"
-      case "guest lecture":
-        return "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300"
-      case "student council":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-    }
-  }
-
-  // Render week view
-  const renderWeekView = () => {
-    return (
-      <div className="border rounded-md">
-        <div className="grid grid-cols-7 border-b">
-          {weekDates.map((date, index) => (
-            <div key={index} className="p-2 text-center border-r last:border-r-0">
-              <div className="font-medium">{format(date, "EEE")}</div>
-              <div className="text-sm text-muted-foreground">{format(date, "MMM d")}</div>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 min-h-[500px]">
-          {weekDates.map((date, index) => (
-            <div key={index} className="border-r last:border-r-0">
-              {renderCalendarDayCell(date)}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  // Render month view
-  const renderMonthView = () => {
-    // In a real implementation, this would generate a proper month calendar
-    // For simplicity, we'll just show the current week
-    return renderWeekView()
-  }
-
-  // Render day view
-  const renderDayView = () => {
-    const dayEvents = filteredEvents.filter((event) => date && isSameDay(parseISO(event.startDate), date))
-
-    return (
-      <div className="border rounded-md p-4">
-        <h3 className="font-medium text-lg mb-4">{date ? format(date, "EEEE, MMMM d, yyyy") : "Select a date"}</h3>
-
-        {dayEvents.length > 0 ? (
-          <div className="space-y-4">{dayEvents.map((event) => renderEventCard(event))}</div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">No events scheduled for this day</div>
-        )}
       </div>
     )
   }
@@ -948,6 +958,61 @@ export default function Events() {
 
     fetchData()
   }, [toast])
+
+  // Render week view
+  const renderWeekView = () => {
+    return (
+      <div className="border rounded-md">
+        <div className="grid grid-cols-7 border-b">
+          {weekDates.map((date, index) => (
+            <div key={index} className="p-2 text-center border-r last:border-r-0">
+              <div className="font-medium">{format(date, "EEE")}</div>
+              <div className="text-sm text-muted-foreground">{format(date, "MMM d")}</div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 min-h-[500px]">
+          {weekDates.map((date, index) => (
+            <div key={index} className="border-r last:border-r-0">
+              {renderCalendarDayCell(date)}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Render month view
+  const renderMonthView = () => {
+    // In a real implementation, this would generate a proper month calendar
+    // For simplicity, we'll just show the current week
+    return renderWeekView()
+  }
+
+  // Render day view
+  const renderDayView = () => {
+    const dayEvents = filteredEvents.filter((event) => {
+      if (!date || !event.startDate) return false
+      try {
+        return isSameDay(parseISO(event.startDate), date)
+      } catch (error) {
+        console.error(`Error parsing date for event ${event.id}:`, error)
+        return false
+      }
+    })
+
+    return (
+      <div className="border rounded-md p-4">
+        <h3 className="font-medium text-lg mb-4">{date ? format(date, "EEEE, MMMM d, yyyy") : "Select a date"}</h3>
+
+        {dayEvents.length > 0 ? (
+          <div className="space-y-4">{dayEvents.map((event) => renderEventCard(event))}</div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">No events scheduled for this day</div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -1927,7 +1992,7 @@ export default function Events() {
                           </div>
                           <p className="text-sm mt-1">{feedback.comments}</p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Submitted on {format(new Date(feedback.submittedAt), "PPP")}
+                            Submitted on {safeFormatDate(feedback.submittedAt, "PPP")}
                           </p>
                         </div>
                       ))}
@@ -2035,7 +2100,7 @@ export default function Events() {
                               <div className="flex justify-between items-start">
                                 <h4 className="font-medium">{announcement.title}</h4>
                                 <span className="text-xs text-muted-foreground">
-                                  {format(new Date(announcement.sentAt), "PPp")}
+                                  {safeFormatDate(announcement.sentAt, "PPp")}
                                 </span>
                               </div>
                               <p className="text-sm mt-1">{announcement.message}</p>

@@ -533,5 +533,62 @@ export const realApiService = {
       method: "DELETE",
     })
   },
+
+  // Schedule methods
+  getScheduleEvent: async (id: string): Promise<ScheduleEvent> => {
+    return apiRequest<ScheduleEvent>(`/schedule/events/${id}`)
+  },
+
+  createScheduleEvent: async (data: Partial<ScheduleEvent>): Promise<ScheduleEvent> => {
+    return apiRequest<ScheduleEvent>("/schedule/events", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+
+  updateScheduleEvent: async (id: string, data: Partial<ScheduleEvent>): Promise<ScheduleEvent> => {
+    return apiRequest<ScheduleEvent>(`/schedule/events/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  },
+
+  deleteScheduleEvent: async (id: string): Promise<void> => {
+    return apiRequest<void>(`/schedule/events/${id}`, {
+      method: "DELETE",
+    })
+  },
+
+  // Schedule notification methods
+  getScheduleNotifications: async (userId: string): Promise<any[]> => {
+    return apiRequest<any[]>(`/schedule/notifications?userId=${userId}`)
+  },
+
+  markScheduleNotificationAsRead: async (id: string): Promise<any> => {
+    return apiRequest<any>(`/schedule/notifications/${id}/read`, {
+      method: "PATCH",
+    })
+  },
+
+  // Schedule conflict check
+  checkScheduleConflicts: async (userId: string, courseIds: string[]): Promise<boolean> => {
+    return apiRequest<boolean>("/schedule/conflicts", {
+      method: "POST",
+      body: JSON.stringify({ userId, courseIds }),
+    })
+  },
+
+  // Course registration
+  registerForCourses: async (userId: string, courseIds: string[]): Promise<boolean> => {
+    return apiRequest<boolean>("/courses/register", {
+      method: "POST",
+      body: JSON.stringify({ userId, courseIds }),
+    })
+  },
+
+  // Student enrollments
+  getStudentEnrollments: async (studentId: string): Promise<any[]> => {
+    return apiRequest<any[]>(`/students/${studentId}/enrollments`)
+  },
 }
 

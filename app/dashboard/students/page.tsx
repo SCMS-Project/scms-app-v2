@@ -38,7 +38,7 @@ import { MoreHorizontal, Plus, Search, Download, Upload, Filter, Loader2 } from 
 import { api } from "@/app/services/api"
 import type { Student } from "../../types"
 import { useToast } from "@/hooks/use-toast"
-import { DEPARTMENTS, STUDENT_YEARS } from "@/app/constants/roles"
+import { DEPARTMENTS } from "@/app/constants/roles"
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -50,8 +50,7 @@ export default function Students() {
     name: "",
     email: "",
     department: "",
-    year: "",
-    gpa: "",
+    // Remove year: "",
   })
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -133,8 +132,6 @@ export default function Students() {
         name: "",
         email: "",
         department: "",
-        year: "",
-        gpa: "",
       })
       toast({
         title: "Success",
@@ -253,6 +250,7 @@ export default function Students() {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Remove this entire div block
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="year" className="text-right">
                     Year
@@ -270,18 +268,7 @@ export default function Students() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="gpa" className="text-right">
-                    GPA
-                  </Label>
-                  <Input
-                    id="gpa"
-                    placeholder="0.0"
-                    className="col-span-3"
-                    value={newStudent.gpa}
-                    onChange={handleInputChange}
-                  />
-                </div>
+                */}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>
@@ -305,15 +292,14 @@ export default function Students() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Department</TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead>GPA</TableHead>
+              {/* Remove <TableHead>Year</TableHead> */}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   <div className="flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     Loading students...
@@ -322,7 +308,7 @@ export default function Students() {
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-red-500">
+                <TableCell colSpan={6} className="h-24 text-center text-red-500">
                   {error}
                 </TableCell>
               </TableRow>
@@ -333,8 +319,7 @@ export default function Students() {
                   <TableCell>{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
                   <TableCell>{student.department}</TableCell>
-                  <TableCell>{student.year}</TableCell>
-                  <TableCell>{student.gpa}</TableCell>
+                  {/* Remove <TableCell>{student.year}</TableCell> */}
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -358,7 +343,7 @@ export default function Students() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No students found.
                 </TableCell>
               </TableRow>

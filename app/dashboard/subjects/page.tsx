@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogTrigger } from "@/components/ui/dialog"
+
 import type React from "react"
 
 import { useState, useEffect } from "react"
@@ -21,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -38,6 +39,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/app/services/api"
 import type { Subject, Course } from "../../types"
 import { useToast } from "@/hooks/use-toast"
+// Add import for CreditInfo
+import { CreditInfo } from "@/app/components/credit-info"
 
 export default function Subjects() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -50,7 +53,7 @@ export default function Subjects() {
     name: "",
     code: "",
     description: "",
-    credits: 2,
+    credits: 15, // Changed from 2 to 15
     department: "",
     courseIds: [],
   })
@@ -159,7 +162,7 @@ export default function Subjects() {
         name: "",
         code: "",
         description: "",
-        credits: 2,
+        credits: 15, // Changed from 2 to 15
         department: "",
         courseIds: [],
       })
@@ -281,19 +284,21 @@ export default function Subjects() {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Add the CreditInfo component next to the Credits label */}
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="credits" className="text-right">
+                  <Label htmlFor="credits" className="text-right flex items-center justify-end gap-1">
                     Credits
+                    <CreditInfo />
                   </Label>
                   <Select onValueChange={(value) => handleNumericChange("credits", value)}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select credits" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 Credit</SelectItem>
-                      <SelectItem value="2">2 Credits</SelectItem>
-                      <SelectItem value="3">3 Credits</SelectItem>
-                      <SelectItem value="4">4 Credits</SelectItem>
+                      <SelectItem value="15">15 Credits</SelectItem>
+                      <SelectItem value="30">30 Credits</SelectItem>
+                      <SelectItem value="45">45 Credits</SelectItem>
+                      <SelectItem value="60">60 Credits</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -1,3 +1,6 @@
+// API Error Handler
+
+// Custom API Error class
 export class ApiError extends Error {
   status: number
   data?: any

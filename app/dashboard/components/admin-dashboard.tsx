@@ -1,43 +1,46 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Calendar, Users, BarChart3, Bell, Clock } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { api } from "@/app/services/api"
-import type { DashboardStats, Event } from "@/app/types"
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts"
+import { Users, BookOpen, Activity, Calendar } from "lucide-react"
+import { mockApi } from "@/app/services/mock-api"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
-  const [recentEvents, setRecentEvents] = useState<Event[]>([])
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
+  const [timeRange, setTimeRange] = useState("month")
   const [isLoading, setIsLoading] = useState(true)
+  const [stats, setStats] = useState<any>(null)
+  const [resourceData, setResourceData] = useState<any[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true)
+        const [statsData, resourceUtilization, events] = await Promise.all([
+          mockApi.getDashboardStats(),
+          mockApi.getResourceUtilizationData(),
+          mockApi.getEvents(),
+        ])
 
-        // Fetch dashboard stats
-        const stats = await api.getDashboardStats()
-        setDashboardStats(stats)
+        setStats(statsData)
+        setResourceData(resourceUtilization)
 
-        // Fetch events
-        const events = await api.getEvents()
+        // Filter and sort upcoming events
+        const now = new Date()
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const upcoming = events
+          .filter((event) => {
+            const eventDate = new Date(event.date)
+            return eventDate >= now && eventDate <= sevenDaysFromNow
+          })
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 5) // Show only next 5 events
 
-        // Sort events by date
-        const sortedEvents = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-        // Split into recent and upcoming events
-        const currentDate = new Date()
-        const upcoming = sortedEvents.filter((event) => new Date(event.date) > currentDate)
-        const recent = sortedEvents.filter((event) => new Date(event.date) <= currentDate)
-
-        setUpcomingEvents(upcoming.slice(0, 4)) // Get first 4 upcoming events
-        setRecentEvents(recent.slice(0, 4)) // Get first 4 recent events
+        setUpcomingEvents(upcoming)
       } catch (error) {
         console.error("Error fetching dashboard data:", error)
       } finally {
@@ -47,25 +50,6 @@ export function AdminDashboard() {
 
     fetchDashboardData()
   }, [])
-
-  const metrics = {
-    totalEvents: {
-      value: dashboardStats?.activeEvents || 0,
-      change: "+12% from last month",
-    },
-    activeUsers: {
-      value: dashboardStats?.totalStudents || 0,
-      change: "+5% from last month",
-    },
-    resourceUtilization: {
-      value: `${dashboardStats?.resourceUtilization || 0}%`,
-      change: "+18% from last month",
-    },
-    announcements: {
-      value: 32,
-      change: "+2 from yesterday",
-    },
-  }
 
   const getCategoryStyle = (category: string) => {
     switch (category) {
@@ -97,9 +81,131 @@ export function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Campus management overview</p>
+          <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <p className="text-muted-foreground">Comprehensive data insights for campus management</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Last Week</SelectItem>
+              <SelectItem value="month">Last Month</SelectItem>
+              <SelectItem value="quarter">Last Quarter</SelectItem>
+              <SelectItem value="year">Last Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalStudents.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">+12% from last semester</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalCourses}</div>
+            <p className="text-xs text-muted-foreground">+5% from last semester</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Faculty Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalFaculty}</div>
+            <p className="text-xs text-muted-foreground">+3% from last semester</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Resource Utilization</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.resourceUtilization}%</div>
+            <p className="text-xs text-muted-foreground">+8% from last semester</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Resource Utilization</CardTitle>
+            <p className="text-sm text-muted-foreground">Campus resource usage over the past 30 days</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={resourceData}>
+                  <defs>
+                    <linearGradient id="colorUtilization" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="resource" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="utilization"
+                    stroke="#8884d8"
+                    fillOpacity={1}
+                    fill="url(#colorUtilization)"
+                    name="Utilization (%)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Events</CardTitle>
+            <p className="text-sm text-muted-foreground">Events scheduled for the next 7 days</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((event) => (
+                  <div key={event.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <div className="space-y-1">
+                      <p className="font-medium">{event.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(event.date).toLocaleDateString()} at{" "}
+                        {new Date(event.date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground">No upcoming events</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -112,130 +218,16 @@ export function AdminDashboard() {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Metrics Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Events</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.totalEvents.value}</div>
-                <p className="text-xs text-muted-foreground">{metrics.totalEvents.change}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.activeUsers.value}</div>
-                <p className="text-xs text-muted-foreground">{metrics.activeUsers.change}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Resource Utilization</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.resourceUtilization.value}</div>
-                <p className="text-xs text-muted-foreground">{metrics.resourceUtilization.change}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Announcements</CardTitle>
-                <Bell className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.announcements.value}</div>
-                <p className="text-xs text-muted-foreground">{metrics.announcements.change}</p>
-              </CardContent>
-            </Card>
-          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"></div>
 
           {/* Main Content Grid */}
           <div className="grid gap-6 md:grid-cols-2">
             {/* Resource Utilization */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Resource Utilization</CardTitle>
-                <p className="text-sm text-muted-foreground">Campus resource usage over the past 30 days</p>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Resource utilization graph will be implemented here
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Upcoming Events */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Events</CardTitle>
-                <p className="text-sm text-muted-foreground">Events scheduled for the next 7 days</p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="flex items-start space-x-4">
-                      <Avatar className="mt-1">
-                        <AvatarImage src={`/placeholder.svg?height=40&width=40`} />
-                        <AvatarFallback>EV</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium leading-none">{event.title}</p>
-                          <Badge className={`${getCategoryStyle(event.type)}`} variant="secondary">
-                            {event.type}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground flex items-center">
-                          <Clock className="mr-1 h-3 w-3" /> {event.startTime} • {event.location}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Organized by: {event.organizer}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Recent Events */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Events</CardTitle>
-              <p className="text-sm text-muted-foreground">Recently completed campus events</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentEvents.map((event) => (
-                  <div key={event.id} className="flex items-start space-x-4">
-                    <Avatar className="mt-1">
-                      <AvatarImage src={`/placeholder.svg?height=40&width=40`} />
-                      <AvatarFallback>EV</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium leading-none">{event.title}</p>
-                        <Badge className={`${getCategoryStyle(event.type)}`} variant="secondary">
-                          {event.type}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {event.date} • {event.location}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Attendees: {event.attendees} • Organized by: {event.organizer}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="events">
@@ -277,6 +269,7 @@ export function AdminDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+      {/* Rest of the dashboard components */}
     </div>
   )
 }

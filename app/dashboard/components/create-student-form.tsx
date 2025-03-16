@@ -57,7 +57,6 @@ export function CreateStudentForm() {
     addressType: "",
     addressDetails: "",
     department: "",
-    year: "1st",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -103,7 +102,6 @@ export function CreateStudentForm() {
         addressType: selectedUser.addressType || "",
         addressDetails: selectedUser.addressDetails || "",
         department: "",
-        year: "1st",
       })
     }
   }
@@ -152,7 +150,6 @@ export function CreateStudentForm() {
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
         department: formData.department,
-        year: formData.year,
         // Additional fields not in the Student type but stored for reference
         title: formData.title,
         fullName: formData.fullName,
@@ -188,7 +185,6 @@ export function CreateStudentForm() {
         addressType: "",
         addressDetails: "",
         department: "",
-        year: "1st",
       })
       setSelectedUserId("")
 
@@ -376,26 +372,6 @@ export function CreateStudentForm() {
                 <SelectItem value="Business">Business</SelectItem>
                 <SelectItem value="Arts">Arts</SelectItem>
                 <SelectItem value="Medicine">Medicine</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Year */}
-          <div className="space-y-2">
-            <Label htmlFor="year">Year</Label>
-            <Select
-              value={formData.year}
-              onValueChange={(value) => handleSelectChange("year", value)}
-              disabled={!selectedUserId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select year" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1st">1st Year</SelectItem>
-                <SelectItem value="2nd">2nd Year</SelectItem>
-                <SelectItem value="3rd">3rd Year</SelectItem>
-                <SelectItem value="4th">4th Year</SelectItem>
               </SelectContent>
             </Select>
           </div>

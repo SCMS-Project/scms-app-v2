@@ -1,10 +1,10 @@
+// Student interface
 export interface Student {
   id: string
   name: string
   email: string
   department: string
-  year: string
-  gpa?: string
+  // Remove the year field
   // Additional fields
   title?: string
   fullName?: string
@@ -34,10 +34,11 @@ export type Faculty = Lecturer
 // Course interface
 export interface Course {
   id: string
+  code: string // Add this line
   name: string
   department: string
   credits: number
-  instructor: string
+  lecturers: string[] // Changed from single lecturer to array of lecturers
   students: number
   status: string
   subjectIds: string[]
@@ -57,6 +58,7 @@ export interface Subject {
 // Facility interface
 export interface Facility {
   id: string
+  code: string // Add this line
   name: string
   type: string
   capacity: number
@@ -214,6 +216,9 @@ export interface ScheduleEvent {
   startTime: string
   endTime: string
   type: string
+  facilityId?: string
+  facilityName?: string
+  facilityCode?: string
 }
 
 // Schedule Notification interface

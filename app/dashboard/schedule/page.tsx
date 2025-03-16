@@ -232,6 +232,7 @@ export default function SchedulePage() {
       "Math Building, Room 201",
       "Arts Building, Room 105",
     ]
+    const facilityIds = ["F001", "F002", "F003", "F004"] // Add this line
     const types: ("Lecture" | "Lab" | "Tutorial")[] = ["Lecture", "Lab", "Tutorial"]
 
     // Generate 1-3 schedule slots based on course ID
@@ -249,6 +250,7 @@ export default function SchedulePage() {
         startTime: startTimes[timeIndex],
         endTime: endTimes[timeIndex],
         location: locations[locationIndex],
+        facilityId: facilityIds[locationIndex], // Add this line
         type: types[typeIndex],
       })
     }
@@ -695,8 +697,13 @@ export default function SchedulePage() {
                   <CardTitle>Calendar</CardTitle>
                   <CardDescription>Select a date to view your schedule</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Calendar mode="single" selected={date} onSelect={handleDateChange} className="rounded-md border" />
+                <CardContent className="flex justify-center pb-4">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateChange}
+                    className="rounded-md border mx-auto"
+                  />
                 </CardContent>
                 <CardFooter className="flex justify-between">
                   <div>

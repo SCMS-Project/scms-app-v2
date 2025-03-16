@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Upload, Download, Plus, MessageSquare, FileText, Clock, Users } from "lucide-react"
+import { Search, Upload, Download, Plus, MessageSquare, FileText, Clock, Users, AlertCircle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { api } from "@/app/services/api"
 import type {
   CollaborationGroup,
@@ -72,6 +73,7 @@ export default function CollaborationPage() {
   const [tasks, setTasks] = useState<CollaborationTask[]>([])
   const [members, setMembers] = useState<CollaborationMember[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedGroup, setSelectedGroup] = useState("CS 101 - Project Group")
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
   const [newGroup, setNewGroup] = useState({
@@ -84,6 +86,7 @@ export default function CollaborationPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
+        setError(null)
 
         // Fetch all collaboration groups
         const groupsData = await api.getCollaborationGroups()
@@ -94,21 +97,22 @@ export default function CollaborationPage() {
           setSelectedGroupId(defaultGroupId)
 
           // Fetch data for the selected group
-          const [messagesData, filesData, tasksData] = await Promise.all([
+          const [messagesData, filesData, tasksData, groupData] = await Promise.all([
             api.getCollaborationMessages(defaultGroupId),
             api.getCollaborationFiles(defaultGroupId),
             api.getCollaborationTasks(defaultGroupId),
+            api.getCollaborationGroup(defaultGroupId),
           ])
-
-          // Find the selected group to get members
-          const selectedGroup = groupsData.find((g) => g.id === defaultGroupId)
 
           setMessages(messagesData)
           setSharedFiles(filesData)
           setTasks(tasksData)
-          setMembers(selectedGroup?.members || [])
+          setMembers(groupData.members || [])
+          setSelectedGroup(groupData.name)
         }
       } catch (error) {
+        console.error("Error fetching collaboration data:", error)
+        setError("Failed to load collaboration data. Please try again.")
         toast({
           title: "Error",
           description: "Failed to load collaboration data. Please try again.",
@@ -120,7 +124,28 @@ export default function CollaborationPage() {
     }
 
     fetchData()
-  }, [selectedGroupId, toast])
+  }, [selectedGroupId])
+
+  const handleRetry = () => {
+    setError(null)
+    setSelectedGroupId(selectedGroupId) // This will trigger the useEffect to fetch data again
+  }
+
+  // If there's an error, show the error state
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={handleRetry} variant="outline">
+          Retry
+        </Button>
+      </div>
+    )
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target

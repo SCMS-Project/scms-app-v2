@@ -44,8 +44,6 @@ export function StudentsModule({ students: initialStudents }: StudentsModuleProp
     name: "",
     email: "",
     department: "",
-    year: "",
-    gpa: "",
   })
 
   // Pagination state
@@ -116,8 +114,6 @@ export function StudentsModule({ students: initialStudents }: StudentsModuleProp
         name: "",
         email: "",
         department: "",
-        year: "",
-        gpa: "",
       })
       toast({
         title: "Success",
@@ -195,15 +191,13 @@ export function StudentsModule({ students: initialStudents }: StudentsModuleProp
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Department</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead>GPA</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     <div className="flex justify-center items-center">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
                       Loading students...
@@ -212,13 +206,13 @@ export function StudentsModule({ students: initialStudents }: StudentsModuleProp
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-red-500">
+                  <TableCell colSpan={6} className="h-24 text-center text-red-500">
                     {error}
                   </TableCell>
                 </TableRow>
               ) : currentStudents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">
+                  <TableCell colSpan={6} className="text-center">
                     No students found
                   </TableCell>
                 </TableRow>
@@ -229,8 +223,6 @@ export function StudentsModule({ students: initialStudents }: StudentsModuleProp
                     <TableCell>{student.name}</TableCell>
                     <TableCell>{student.email}</TableCell>
                     <TableCell>{student.department}</TableCell>
-                    <TableCell>{student.year}</TableCell>
-                    <TableCell>{student.gpa}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

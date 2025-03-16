@@ -48,8 +48,8 @@ export default function CoursesModule() {
   const [newCourse, setNewCourse] = useState<Omit<Course, "id">>({
     name: "",
     department: "",
-    credits: 3,
-    instructor: "",
+    credits: 30, // Changed from 3 to 30
+    lecturer: "", // Changed from instructor to lecturer
     students: 0,
     status: "Active",
   })
@@ -86,7 +86,7 @@ export default function CoursesModule() {
       course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase()),
+      course.lecturer.toLowerCase().includes(searchQuery.toLowerCase()), // Changed from instructor to lecturer
   )
 
   const indexOfLastCourse = currentPage * itemsPerPage
@@ -134,8 +134,8 @@ export default function CoursesModule() {
       setNewCourse({
         name: "",
         department: "",
-        credits: 3,
-        instructor: "",
+        credits: 30, // Changed from 3 to 30
+        lecturer: "", // Changed from instructor to lecturer
         students: 0,
         status: "Active",
       })
@@ -243,20 +243,20 @@ export default function CoursesModule() {
                       <SelectValue placeholder="Select credits" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 Credit</SelectItem>
-                      <SelectItem value="2">2 Credits</SelectItem>
-                      <SelectItem value="3">3 Credits</SelectItem>
-                      <SelectItem value="4">4 Credits</SelectItem>
+                      <SelectItem value="15">15 Credits</SelectItem>
+                      <SelectItem value="30">30 Credits</SelectItem>
+                      <SelectItem value="45">45 Credits</SelectItem>
+                      <SelectItem value="60">60 Credits</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="instructor" className="text-right">
-                    Instructor
+                  <Label htmlFor="lecturer" className="text-right">
+                    Lecturer
                   </Label>
-                  <Select onValueChange={(value) => handleSelectChange("instructor", value)}>
+                  <Select onValueChange={(value) => handleSelectChange("lecturer", value)}>
                     <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select instructor" />
+                      <SelectValue placeholder="Select lecturer" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Dr. Robert Chen">Dr. Robert Chen</SelectItem>
@@ -302,7 +302,7 @@ export default function CoursesModule() {
               <TableHead>Name</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Credits</TableHead>
-              <TableHead>Instructor</TableHead>
+              <TableHead>Lecturer</TableHead>
               <TableHead>Students</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -331,7 +331,7 @@ export default function CoursesModule() {
                   <TableCell>{course.name}</TableCell>
                   <TableCell>{course.department}</TableCell>
                   <TableCell>{course.credits}</TableCell>
-                  <TableCell>{course.instructor}</TableCell>
+                  <TableCell>{course.lecturer}</TableCell>
                   <TableCell>{course.students}</TableCell>
                   <TableCell>
                     <span

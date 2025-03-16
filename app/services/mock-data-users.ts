@@ -1,3 +1,6 @@
+// This is a new file to show the mock users data for debugging
+// You don't need to create this file, it's just for reference
+
 export const mockUsers = [
   {
     id: "U001",

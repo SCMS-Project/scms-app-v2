@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,44 +36,58 @@ import {
 } from "@/components/ui/pagination"
 import { MoreHorizontal, Plus, Search, Filter, Loader2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
-// Update imports to reflect new file paths
-import { api } from "@/app/services/api"
-import type { Course } from "../../types"
+import { CreditInfo } from "@/app/components/credit-info"
+import { MultiSelect } from "@/components/ui/multi-select"
 import { useToast } from "@/hooks/use-toast"
+import type { Course } from "@/app/types"
 
-// Import useRouter
-import { useRouter } from "next/navigation"
+// Import the centralized API service
+import { api } from "@/app/services/api"
 
-// Add router inside the component
+// Mock lecturers data for the dropdown
+const lecturerOptions = [
+  { value: "Dr. Robert Chen", label: "Dr. Robert Chen" },
+  { value: "Dr. Sarah Johnson", label: "Dr. Sarah Johnson" },
+  { value: "Dr. Michael Lee", label: "Dr. Michael Lee" },
+  { value: "Dr. Emily Davis", label: "Dr. Emily Davis" },
+  { value: "Dr. James Wilson", label: "Dr. James Wilson" },
+  { value: "Dr. Lisa Brown", label: "Dr. Lisa Brown" },
+]
+
 export default function Courses() {
   const router = useRouter()
+  const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [newCourse, setNewCourse] = useState<Omit<Course, "id">>({
+  const [newCourse, setNewCourse] = useState<Partial<Course>>({
     name: "",
+    code: "",
     department: "",
-    credits: 3,
-    instructor: "",
+    credits: 30,
+    lecturers: [],
     students: 0,
     status: "Active",
+    subjectIds: [],
   })
-
-  const { toast } = useToast()
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
 
+  // Fetch courses from the centralized mock API
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true)
+        console.log("Fetching courses from API...")
         const data = await api.getCourses()
+        console.log("Courses data received:", data)
         setCourses(data)
         setError(null)
       } catch (err) {
+        console.error("Error fetching courses:", err)
         setError("Failed to fetch courses data")
         toast({
           title: "Error",
@@ -92,7 +107,9 @@ export default function Courses() {
       course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase()),
+      (Array.isArray(course.lecturers)
+        ? course.lecturers.join(", ").toLowerCase().includes(searchQuery.toLowerCase())
+        : ""),
   )
 
   const indexOfLastCourse = currentPage * itemsPerPage
@@ -135,22 +152,27 @@ export default function Courses() {
   const handleCreateCourse = async () => {
     try {
       setLoading(true)
+      console.log("Creating new course:", newCourse)
       const createdCourse = await api.createCourse(newCourse)
+      console.log("Course created:", createdCourse)
       setCourses((prev) => [...prev, createdCourse])
       setIsAddCourseOpen(false)
       setNewCourse({
         name: "",
+        code: "",
         department: "",
-        credits: 3,
-        instructor: "",
+        credits: 30,
+        lecturers: [],
         students: 0,
         status: "Active",
+        subjectIds: [],
       })
       toast({
         title: "Success",
         description: "Course added successfully",
       })
     } catch (err) {
+      console.error("Error creating course:", err)
       toast({
         title: "Error",
         description: "Failed to add course. Please try again.",
@@ -164,6 +186,7 @@ export default function Courses() {
   const handleDeleteCourse = async (id: string) => {
     try {
       setLoading(true)
+      console.log("Deleting course with ID:", id)
       await api.deleteCourse(id)
       setCourses((prev) => prev.filter((course) => course.id !== id))
       toast({
@@ -171,6 +194,7 @@ export default function Courses() {
         description: "Course deleted successfully",
       })
     } catch (err) {
+      console.error("Error deleting course:", err)
       toast({
         title: "Error",
         description: "Failed to delete course. Please try again.",
@@ -228,6 +252,18 @@ export default function Courses() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="code" className="text-right">
+                    Course Code
+                  </Label>
+                  <Input
+                    id="code"
+                    placeholder="CS101"
+                    className="col-span-3"
+                    value={newCourse.code}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="department" className="text-right">
                     Department
                   </Label>
@@ -246,38 +282,39 @@ export default function Courses() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="credits" className="text-right">
+                  <Label htmlFor="credits" className="text-right flex items-center justify-end gap-1">
                     Credits
+                    <CreditInfo />
                   </Label>
                   <Select onValueChange={(value) => handleNumericChange("credits", value)}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select credits" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 Credit</SelectItem>
-                      <SelectItem value="2">2 Credits</SelectItem>
-                      <SelectItem value="3">3 Credits</SelectItem>
-                      <SelectItem value="4">4 Credits</SelectItem>
+                      <SelectItem value="15">15 Credits</SelectItem>
+                      <SelectItem value="30">30 Credits</SelectItem>
+                      <SelectItem value="45">45 Credits</SelectItem>
+                      <SelectItem value="60">60 Credits</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="instructor" className="text-right">
-                    Instructor
+                  <Label htmlFor="lecturers" className="text-right">
+                    Lecturers
                   </Label>
-                  <Select onValueChange={(value) => handleSelectChange("instructor", value)}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select instructor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Dr. Robert Chen">Dr. Robert Chen</SelectItem>
-                      <SelectItem value="Dr. Sarah Johnson">Dr. Sarah Johnson</SelectItem>
-                      <SelectItem value="Dr. Michael Lee">Dr. Michael Lee</SelectItem>
-                      <SelectItem value="Dr. Emily Davis">Dr. Emily Davis</SelectItem>
-                      <SelectItem value="Dr. James Wilson">Dr. James Wilson</SelectItem>
-                      <SelectItem value="Dr. Lisa Brown">Dr. Lisa Brown</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="col-span-3">
+                    <MultiSelect
+                      selected={newCourse.lecturers || []}
+                      options={lecturerOptions}
+                      onChange={(selected) => {
+                        setNewCourse((prev) => ({
+                          ...prev,
+                          lecturers: selected,
+                        }))
+                      }}
+                      placeholder="Select lecturers..."
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="description" className="text-right pt-2">
@@ -310,10 +347,11 @@ export default function Courses() {
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
+              <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Credits</TableHead>
-              <TableHead>Instructor</TableHead>
+              <TableHead>Lecturers</TableHead>
               <TableHead>Students</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -322,7 +360,7 @@ export default function Courses() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   <div className="flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     Loading courses...
@@ -331,7 +369,7 @@ export default function Courses() {
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-red-500">
+                <TableCell colSpan={9} className="h-24 text-center text-red-500">
                   {error}
                 </TableCell>
               </TableRow>
@@ -339,10 +377,11 @@ export default function Courses() {
               currentCourses.map((course) => (
                 <TableRow key={course.id}>
                   <TableCell className="font-medium">{course.id}</TableCell>
+                  <TableCell>{course.code}</TableCell>
                   <TableCell>{course.name}</TableCell>
                   <TableCell>{course.department}</TableCell>
                   <TableCell>{course.credits}</TableCell>
-                  <TableCell>{course.instructor}</TableCell>
+                  <TableCell>{Array.isArray(course.lecturers) ? course.lecturers.join(", ") : "N/A"}</TableCell>
                   <TableCell>{course.students}</TableCell>
                   <TableCell>
                     <span
@@ -381,7 +420,7 @@ export default function Courses() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   No courses found.
                 </TableCell>
               </TableRow>

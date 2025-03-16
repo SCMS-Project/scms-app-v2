@@ -17,6 +17,8 @@ import type {
   CollaborationMessage,
   CollaborationFile,
   CollaborationTask,
+  ScheduleEvent,
+  ScheduleNotification,
 } from "../types"
 
 // Mock API service implementation
@@ -374,6 +376,51 @@ export const mockApiService = {
 
   deleteCollaborationTask: async (id: string): Promise<void> => {
     return mockApi.deleteCollaborationTask(id)
+  },
+
+  // Schedule methods
+  getScheduleEvents: async (): Promise<ScheduleEvent[]> => {
+    return mockApi.getScheduleEvents()
+  },
+
+  getScheduleEvent: async (id: string): Promise<ScheduleEvent> => {
+    return mockApi.getScheduleEvent(id)
+  },
+
+  createScheduleEvent: async (data: Partial<ScheduleEvent>): Promise<ScheduleEvent> => {
+    return mockApi.createScheduleEvent(data)
+  },
+
+  updateScheduleEvent: async (id: string, data: Partial<ScheduleEvent>): Promise<ScheduleEvent> => {
+    return mockApi.updateScheduleEvent(id, data)
+  },
+
+  deleteScheduleEvent: async (id: string): Promise<void> => {
+    return mockApi.deleteScheduleEvent(id)
+  },
+
+  // Schedule notification methods
+  getScheduleNotifications: async (userId: string): Promise<ScheduleNotification[]> => {
+    return mockApi.getScheduleNotifications(userId)
+  },
+
+  markScheduleNotificationAsRead: async (id: string): Promise<ScheduleNotification> => {
+    return mockApi.markScheduleNotificationAsRead(id)
+  },
+
+  // Schedule conflict check
+  checkScheduleConflicts: async (userId: string, courseIds: string[]): Promise<boolean> => {
+    return mockApi.checkScheduleConflicts(userId, courseIds)
+  },
+
+  // Course registration
+  registerForCourses: async (userId: string, courseIds: string[]): Promise<boolean> => {
+    return mockApi.registerForCourses(userId, courseIds)
+  },
+
+  // Student enrollments
+  getStudentEnrollments: async (studentId: string): Promise<any[]> => {
+    return mockApi.getStudentEnrollments(studentId)
   },
 }
 

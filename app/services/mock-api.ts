@@ -12,11 +12,14 @@ import {
   mockNotifications,
   mockResources,
   mockUsers,
-  mockCollaborationGroups,
 } from "./mock-data"
 
 // Simulate API delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// Mock schedule events and notifications
+const mockScheduleEvents = []
+const mockScheduleNotifications = []
 
 // Mock API implementation
 export const mockApi = {
@@ -637,6 +640,7 @@ export const mockApi = {
     return ["Projector", "Microphone", "Chairs", "Tables"]
   },
 
+  // Schedule events
   getScheduleEvents: async () => {
     await delay(300)
     // Generate mock schedule events
@@ -679,317 +683,98 @@ export const mockApi = {
     return mockScheduleEvents
   },
 
-  getScheduleNotifications: async (userId) => {
-    await delay(300)
-    // Generate mock schedule notifications
-    const types = ["Cancellation", "Reschedule", "RoomChange", "NewClass", "Reminder", "Registration"]
-    const mockScheduleNotifications = []
+  getScheduleEvent: async (id: string) => {
+    const event = mockScheduleEvents.find((event) => event.id === id)
+    if (!event) {
+      throw new Error(`Schedule event with ID ${id} not found`)
+    }
+    return event
+  },
 
-    // Generate 5 mock notifications
-    for (let i = 0; i < 5; i++) {
-      const type = types[Math.floor(Math.random() * types.length)]
-      const isRead = Math.random() > 0.5
-
-      let title, message
-      switch (type) {
-        case "Cancellation":
-          title = "Class Cancelled"
-          message = `Your ${["Math", "Physics", "Computer Science", "Literature"][Math.floor(Math.random() * 4)]} class on ${["Monday", "Tuesday", "Wednesday"][Math.floor(Math.random() * 3)]} has been cancelled.`
-          break
-        case "Reschedule":
-          title = "Class Rescheduled"
-          message = `Your ${["Math", "Physics", "Computer Science", "Literature"][Math.floor(Math.random() * 4)]} class has been rescheduled to ${["Monday", "Tuesday", "Wednesday"][Math.floor(Math.random() * 3)]} at ${8 + Math.floor(Math.random() * 10)}:00.`
-          break
-        case "RoomChange":
-          title = "Room Change"
-          message = `Your ${["Math", "Physics", "Computer Science", "Literature"][Math.floor(Math.random() * 4)]} class has been moved to Room ${100 + Math.floor(Math.random() * 100)}.`
-          break
-        case "NewClass":
-          title = "New Class Added"
-          message = `A new ${["Math", "Physics", "Computer Science", "Literature"][Math.floor(Math.random() * 4)]} class has been added to your schedule on ${["Monday", "Tuesday", "Wednesday"][Math.floor(Math.random() * 3)]} at ${8 + Math.floor(Math.random() * 10)}:00.`
-          break
-        case "Reminder":
-          title = "Class Reminder"
-          message = `Reminder: You have a ${["Math", "Physics", "Computer Science", "Literature"][Math.floor(Math.random() * 4)]} class tomorrow at ${8 + Math.floor(Math.random() * 10)}:00.`
-          break
-        case "Registration":
-          title = "Registration Successful"
-          message = `You have successfully registered for ${["Math", "Physics", "Computer Science", "Literature"][Math.floor(Math.random() * 4)]} class.`
-          break
-        default:
-          title = "Schedule Update"
-          message = "Your schedule has been updated."
-      }
-
-      mockScheduleNotifications.push({
-        id: `SCHNOT${(i + 1).toString().padStart(3, "0")}`,
-        userId,
-        title,
-        message,
-        date: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(), // Random date within the last week
-        isRead,
-        type,
-      })
+  createScheduleEvent: async (data) => {
+    // Create a new schedule event
+    const newEvent = {
+      id: data.id || `SCH${Date.now().toString().slice(-6)}`,
+      title: data.title || "Untitled Event",
+      courseCode: data.courseCode || "",
+      instructor: data.instructor || "",
+      location: data.location || "",
+      day: data.day || "Monday",
+      startTime: data.startTime || "09:00",
+      endTime: data.endTime || "10:00",
+      type: data.type || "Lecture",
+      facilityId: data.facilityId,
+      facilityName: data.facilityName,
+      facilityCode: data.facilityCode,
     }
 
-    return mockScheduleNotifications
+    // Add to mock data
+    mockScheduleEvents.push(newEvent)
+
+    return newEvent
+  },
+
+  updateScheduleEvent: async (id: string, data) => {
+    const eventIndex = mockScheduleEvents.findIndex((event) => event.id === id)
+    if (eventIndex === -1) {
+      throw new Error(`Schedule event with ID ${id} not found`)
+    }
+
+    // Update the event
+    mockScheduleEvents[eventIndex] = {
+      ...mockScheduleEvents[eventIndex],
+      ...data,
+    }
+
+    return mockScheduleEvents[eventIndex]
+  },
+
+  deleteScheduleEvent: async (id: string) => {
+    const eventIndex = mockScheduleEvents.findIndex((event) => event.id === id)
+    if (eventIndex === -1) {
+      throw new Error(`Schedule event with ID ${id} not found`)
+    }
+
+    // Remove the event
+    mockScheduleEvents.splice(eventIndex, 1)
+  },
+
+  // Schedule notifications
+  getScheduleNotifications: async (userId) => {
+    // Return mock notifications for the user
+    return mockScheduleNotifications.filter((notification) => notification.userId === userId || !notification.userId)
   },
 
   markScheduleNotificationAsRead: async (id) => {
-    await delay(300)
-    // Find the notification and mark it as read
-    const notificationIndex = mockNotifications.findIndex((n) => n.id === id)
-    if (notificationIndex !== -1) {
-      mockNotifications[notificationIndex] = {
-        ...mockNotifications[notificationIndex],
-        isRead: true,
-      }
-      return mockNotifications[notificationIndex]
-    }
-    throw new Error(`Notification with ID ${id} not found`)
-  },
-
-  checkScheduleConflicts: async (studentId, courseIds) => {
-    await delay(300)
-    // For demo purposes, return a conflict if the courseIds array has more than 3 items
-    // In a real implementation, this would check for actual time conflicts
-    return courseIds.length > 3
-  },
-
-  registerForCourses: async (studentId, courseIds) => {
-    await delay(500)
-
-    // Create enrollments for each course
-    for (const courseId of courseIds) {
-      const course = mockCourses.find((c) => c.id === courseId)
-      if (course) {
-        const newEnrollment = {
-          id: `E${(mockEnrollments.length + 1).toString().padStart(3, "0")}`,
-          studentId,
-          studentName: mockStudents.find((s) => s.id === studentId)?.name || "Unknown Student",
-          courseId,
-          courseName: course.name,
-          batchId: "B001", // Default batch
-          batchName: "Batch 2023",
-          enrollmentDate: new Date().toISOString(),
-          status: "Active",
-        }
-
-        mockEnrollments.push(newEnrollment)
-      }
-    }
-
-    return true
-  },
-
-  getStudentEnrollments: async (studentId) => {
-    await delay(300)
-    return mockEnrollments.filter((enrollment) => enrollment.studentId === studentId)
-  },
-
-  getCourseSubjects: async (courseId) => {
-    await delay(300)
-    return mockSubjects.filter((subject) => subject.courseIds && subject.courseIds.includes(courseId))
-  },
-
-  assignSubjectsToCourse: async (courseId, subjectIds) => {
-    await delay(500)
-    const courseIndex = mockCourses.findIndex((c) => c.id === courseId)
-    if (courseIndex === -1) {
-      throw new Error(`Course with ID ${courseId} not found`)
-    }
-
-    // Update subjects to include this course
-    subjectIds.forEach((subjectId) => {
-      const subjectIndex = mockSubjects.findIndex((s) => s.id === subjectId)
-      if (subjectIndex !== -1) {
-        if (!mockSubjects[subjectIndex].courseIds) {
-          mockSubjects[subjectIndex].courseIds = []
-        }
-        if (!mockSubjects[subjectIndex].courseIds.includes(courseId)) {
-          mockSubjects[subjectIndex].courseIds.push(courseId)
-        }
-      }
-    })
-
-    return mockCourses[courseIndex]
-  },
-
-  removeSubjectsFromCourse: async (courseId, subjectIds) => {
-    await delay(500)
-
-    // Update subjects to remove this course
-    subjectIds.forEach((subjectId) => {
-      const subjectIndex = mockSubjects.findIndex((s) => s.id === subjectId)
-      if (subjectIndex !== -1 && mockSubjects[subjectIndex].courseIds) {
-        mockSubjects[subjectIndex].courseIds = mockSubjects[subjectIndex].courseIds.filter((id) => id !== courseId)
-      }
-    })
-  },
-
-  // Resource checkout/return methods
-  checkoutResource: async (id, userId, userName) => {
-    await delay(500)
-    const resourceIndex = mockResources.findIndex((r) => r.id === id)
-    if (resourceIndex === -1) {
-      throw new Error(`Resource with ID ${id} not found`)
-    }
-
-    mockResources[resourceIndex] = {
-      ...mockResources[resourceIndex],
-      status: "checked-out",
-      checkedOutBy: {
-        id: userId,
-        name: userName,
-      },
-      checkedOutDate: new Date().toISOString(),
-    }
-
-    return mockResources[resourceIndex]
-  },
-
-  returnResource: async (id) => {
-    await delay(500)
-    const resourceIndex = mockResources.findIndex((r) => r.id === id)
-    if (resourceIndex === -1) {
-      throw new Error(`Resource with ID ${id} not found`)
-    }
-
-    mockResources[resourceIndex] = {
-      ...mockResources[resourceIndex],
-      status: "available",
-      checkedOutBy: null,
-      checkedOutDate: null,
-      returnDate: new Date().toISOString(),
-    }
-
-    return mockResources[resourceIndex]
-  },
-
-  // Message sending method
-  sendMessage: async (data) => {
-    await delay(500)
-    const newId = `M${(mockMessages.length + 1).toString().padStart(3, "0")}`
-    const newMessage = {
-      id: newId,
-      timestamp: new Date().toISOString(),
-      ...data,
-    }
-    mockMessages.push(newMessage)
-    return newMessage
-  },
-
-  // Notification read method
-  markNotificationAsRead: async (id) => {
-    await delay(300)
-    const notificationIndex = mockNotifications.findIndex((n) => n.id === id)
+    const notificationIndex = mockScheduleNotifications.findIndex((notification) => notification.id === id)
     if (notificationIndex === -1) {
       throw new Error(`Notification with ID ${id} not found`)
     }
 
-    mockNotifications[notificationIndex] = {
-      ...mockNotifications[notificationIndex],
-      read: true,
-    }
+    // Mark as read
+    mockScheduleNotifications[notificationIndex].isRead = true
 
-    return mockNotifications[notificationIndex]
+    return mockScheduleNotifications[notificationIndex]
   },
 
-  // Collaboration methods
-  getCollaborationGroups: async () => {
-    await delay(300)
-    return mockCollaborationGroups
+  // Schedule conflict check
+  checkScheduleConflicts: async (userId, courseIds) => {
+    // Simulate checking for conflicts
+    // In a real implementation, this would check the user's existing schedule against the courses they want to register for
+    return false // No conflicts for demo purposes
   },
 
-  getCollaborationGroup: async (id: string) => {
-    await delay(200)
-    const group = mockCollaborationGroups.find((g) => g.id === id)
-    if (!group) {
-      throw new Error(`Collaboration Group with ID ${id} not found`)
-    }
-    return group
+  // Course registration
+  registerForCourses: async (userId, courseIds) => {
+    // Simulate registering for courses
+    // In a real implementation, this would create enrollment records
+    return true // Success for demo purposes
   },
 
-  createCollaborationGroup: async (data) => {
-    await delay(500)
-    const newId = `CG${(mockCollaborationGroups.length + 1).toString().padStart(3, "0")}`
-    const newGroup = { id: newId, ...data }
-    mockCollaborationGroups.push(newGroup)
-    return newGroup
-  },
-
-  updateCollaborationGroup: async (id: string, data) => {
-    await delay(500)
-    const groupIndex = mockCollaborationGroups.findIndex((g) => g.id === id)
-    if (groupIndex === -1) {
-      throw new Error(`Collaboration Group with ID ${id} not found`)
-    }
-    mockCollaborationGroups[groupIndex] = { ...mockCollaborationGroups[groupIndex], ...data }
-    return mockCollaborationGroups[groupIndex]
-  },
-
-  deleteCollaborationGroup: async (id: string) => {
-    await delay(500)
-    const groupIndex = mockCollaborationGroups.findIndex((g) => g.id === id)
-    if (groupIndex === -1) {
-      throw new Error(`Collaboration Group with ID ${id} not found`)
-    }
-    mockCollaborationGroups.splice(groupIndex, 1)
-  },
-
-  // Collaboration Message methods
-  getCollaborationMessages: async (groupId: string) => {
-    await delay(300)
-    // This would be implemented in a real API
-    return []
-  },
-
-  createCollaborationMessage: async (data) => {
-    await delay(500)
-    // This would be implemented in a real API
-    return { id: "CM001", ...data }
-  },
-
-  // Collaboration File methods
-  getCollaborationFiles: async (groupId: string) => {
-    await delay(300)
-    // This would be implemented in a real API
-    return []
-  },
-
-  createCollaborationFile: async (data) => {
-    await delay(500)
-    // This would be implemented in a real API
-    return { id: "CF001", ...data }
-  },
-
-  deleteCollaborationFile: async (id: string) => {
-    await delay(500)
-    // This would be implemented in a real API
-  },
-
-  // Collaboration Task methods
-  getCollaborationTasks: async (groupId: string) => {
-    await delay(300)
-    // This would be implemented in a real API
-    return []
-  },
-
-  createCollaborationTask: async (data) => {
-    await delay(500)
-    // This would be implemented in a real API
-    return { id: "CT001", ...data }
-  },
-
-  updateCollaborationTask: async (id: string, data) => {
-    await delay(500)
-    // This would be implemented in a real API
-    return { id, ...data }
-  },
-
-  deleteCollaborationTask: async (id: string) => {
-    await delay(500)
-    // This would be implemented in a real API
+  // Student enrollments
+  getStudentEnrollments: async (studentId) => {
+    // Return mock enrollments for the student
+    return mockEnrollments.filter((enrollment) => enrollment.studentId === studentId)
   },
 }
 

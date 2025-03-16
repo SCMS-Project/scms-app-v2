@@ -1,3 +1,4 @@
+// Role constants
 export const ROLES = {
   ADMIN: "admin",
   STUDENT: "student",
@@ -129,10 +130,10 @@ export const RESERVATION_STATUS = [
 
 // Subject credits
 export const SUBJECT_CREDITS = [
-  { value: 1, label: "1 Credit" },
-  { value: 2, label: "2 Credits" },
-  { value: 3, label: "3 Credits" },
-  { value: 4, label: "4 Credits" },
+  { value: 15, label: "15 Credits" },
+  { value: 30, label: "30 Credits" },
+  { value: 45, label: "45 Credits" },
+  { value: 60, label: "60 Credits" },
 ]
 
 // For backward compatibility with EVENT_STATUS_OPTIONS

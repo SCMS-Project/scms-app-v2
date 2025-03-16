@@ -54,6 +54,7 @@ export default function Facilities() {
   const [activeTab, setActiveTab] = useState("facilities")
   const [newFacility, setNewFacility] = useState<Omit<Facility, "id">>({
     name: "",
+    code: "",
     type: "",
     capacity: 0,
     rooms: 0,
@@ -157,6 +158,7 @@ export default function Facilities() {
       setIsAddFacilityOpen(false)
       setNewFacility({
         name: "",
+        code: "",
         type: "",
         capacity: 0,
         rooms: 0,
@@ -303,6 +305,18 @@ export default function Facilities() {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="code" className="text-right">
+                    Facility Code
+                  </Label>
+                  <Input
+                    id="code"
+                    placeholder="e.g., MB-AUD"
+                    className="col-span-3"
+                    value={newFacility.code}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="type" className="text-right">
                     Type
                   </Label>
@@ -432,6 +446,7 @@ export default function Facilities() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Capacity</TableHead>
@@ -460,6 +475,7 @@ export default function Facilities() {
                   paginatedFacilities.map((facility) => (
                     <TableRow key={facility.id}>
                       <TableCell className="font-medium">{facility.id}</TableCell>
+                      <TableCell>{facility.code}</TableCell>
                       <TableCell>{facility.name}</TableCell>
                       <TableCell>{facility.type}</TableCell>
                       <TableCell>{facility.capacity}</TableCell>
