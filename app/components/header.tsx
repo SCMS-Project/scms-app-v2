@@ -227,7 +227,7 @@ export default function Header({ setIsSidebarOpen, isSidebarOpen }: HeaderProps)
         <span className="sr-only">Toggle sidebar</span>
       </Button>
 
-      <div className="flex items-center gap-2 font-bold text-xl">Campus Management System</div>
+      <div className="flex items-center gap-2 font-bold text-xl">Smart Campus Management System</div>
 
       <div className="ml-auto flex items-center gap-4">
         <ThemeToggle />

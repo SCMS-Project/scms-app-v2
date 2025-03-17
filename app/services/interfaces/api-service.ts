@@ -40,7 +40,7 @@ export interface ApiService {
 
   // Facilities
   getFacilities(): Promise<any[]>
-  createFacility(facilityData: any): Promise<any>
+  createFacility?(facilityData: any): Promise<any>
   updateFacility?(id: string, facilityData: any): Promise<any>
   deleteFacility?(id: string): Promise<any>
 
@@ -71,6 +71,11 @@ export interface ApiService {
 
   // Collaboration
   getCollaborationGroups(): Promise<any[]>
+
+  // Communications
+  getMessages?(userId: string): Promise<any[]>
+  sendMessage?(messageData: any): Promise<any>
+  deleteMessage?(id: string): Promise<any>
 
   // Other endpoints...
 }

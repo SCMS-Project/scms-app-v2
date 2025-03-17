@@ -14,6 +14,7 @@ import { mockReservations } from "./data/reservations"
 import { mockResources } from "./data/resources"
 // Import the mock subjects data
 import { mockSubjects } from "./data/subjects"
+import { mockMessages } from "./data/messages"
 
 // Update the mockSubjects array to reference valid course IDs
 // Assuming mockCourses has entries with IDs like "course-1", "course-2", etc.
@@ -339,6 +340,30 @@ export class MockApiService implements ApiService {
     return mockFacilities || []
   }
 
+  async createFacility(facilityData: any) {
+    console.log("Mock API: Creating facility", facilityData)
+    const newFacility = {
+      ...facilityData,
+      id: `facility-${Date.now()}`,
+      code: facilityData.code || `F${Math.floor(Math.random() * 1000)}`,
+      status: facilityData.status || "Available",
+    }
+    return newFacility
+  }
+
+  async updateFacility(id: string, facilityData: any) {
+    console.log(`Mock API: Updating facility with ID: ${id}`, facilityData)
+    return {
+      ...facilityData,
+      id,
+    }
+  }
+
+  async deleteFacility(id: string) {
+    console.log(`Mock API: Deleting facility with ID: ${id}`)
+    return { success: true }
+  }
+
   // Events
   async getEvents() {
     console.log("Mock API: Getting events")
@@ -525,6 +550,40 @@ export class MockApiService implements ApiService {
       checkedOutBy: null,
       checkedOutAt: null,
     }
+  }
+
+  // Communications
+  async getMessages(userId: string) {
+    console.log(`Mock API: Getting messages for user with ID: ${userId}`)
+
+    // Filter messages where the user is either the sender or recipient
+    const userMessages = mockMessages.filter((message) => message.senderId === userId || message.recipientId === userId)
+
+    return userMessages
+  }
+
+  async sendMessage(messageData: any) {
+    console.log("Mock API: Sending message", messageData)
+
+    // Create a new message with the provided data
+    const newMessage = {
+      ...messageData,
+      id: `msg-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+    }
+
+    // In a real implementation, we would add this to the database
+    // For mock purposes, we'll just return the new message
+    return newMessage
+  }
+
+  async deleteMessage(id: string) {
+    console.log(`Mock API: Deleting message with ID: ${id}`)
+
+    // In a real implementation, this would remove the message from the database
+    // For mock purposes, we'll just return success
+    return { success: true, id }
   }
 }
 

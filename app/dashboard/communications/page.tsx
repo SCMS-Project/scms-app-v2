@@ -7,20 +7,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {} from "@/components/ui/tabs" // Remove this line entirely if not needed elsewhere
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Loader2, Search } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { mockApi } from "@/app/services/mock-api"
-import type { Message, Notification } from "@/app/types"
+import type { Message, Notification, User } from "@/app/types"
 import { useAuth } from "@/app/contexts/auth-context"
 
 export default function Communications() {
   const [messages, setMessages] = useState<Message[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [loadingUsers, setLoadingUsers] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [apiAvailable, setApiAvailable] = useState(true)
   const [newMessage, setNewMessage] = useState({
     recipientId: "",
     recipientName: "",
@@ -30,6 +34,90 @@ export default function Communications() {
 
   const { user } = useAuth()
   const { toast } = useToast()
+
+  // Check if the API is properly implemented
+  useEffect(() => {
+    const checkApiAvailability = () => {
+      // For debugging - log the mockApi object to see what methods are available
+      console.log("mockApi methods:", Object.keys(mockApi))
+
+      const requiredMethods = ["sendMessage", "getMessages", "deleteMessage"]
+      const missingMethods = requiredMethods.filter((method) => typeof mockApi[method] !== "function")
+
+      if (missingMethods.length > 0) {
+        console.warn(`API missing required methods: ${missingMethods.join(", ")}`)
+        setApiAvailable(false)
+        toast({
+          title: "API Warning",
+          description: "Some messaging features may not work properly. API implementation is incomplete.",
+          variant: "destructive",
+        })
+      } else {
+        console.log("All required API methods are available")
+        setApiAvailable(true)
+      }
+    }
+
+    checkApiAvailability()
+  }, [toast])
+
+  // Fetch users from the API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true)
+        let usersData
+
+        if (typeof mockApi.getUsers === "function") {
+          usersData = await mockApi.getUsers()
+        } else {
+          console.warn("mockApi.getUsers is not available, using fallback data")
+          usersData = [
+            { id: "U001", name: "Admin User", email: "admin@example.com", role: "admin" },
+            { id: "U002", name: "Dr. Robert Chen", email: "r.chen@example.edu", role: "lecturer" },
+            { id: "U003", name: "Dr. Sarah Johnson", email: "s.johnson@example.edu", role: "lecturer" },
+            { id: "U004", name: "John Smith", email: "j.smith@example.edu", role: "student" },
+            { id: "U005", name: "Emma Johnson", email: "e.johnson@example.edu", role: "student" },
+          ]
+        }
+
+        if (Array.isArray(usersData)) {
+          // Filter out the current user
+          const filteredUsers = usersData.filter((u) => u.id !== user?.id)
+          setUsers(filteredUsers)
+        } else {
+          console.warn("Invalid users data format", usersData)
+          setUsers([])
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err)
+        toast({
+          title: "Error",
+          description: "Failed to fetch users. Using sample data instead.",
+          variant: "destructive",
+        })
+
+        // Fallback data
+        setUsers([
+          { id: "U001", name: "Admin User", email: "admin@example.com", role: "admin" },
+          { id: "U002", name: "Dr. Robert Chen", email: "r.chen@example.edu", role: "lecturer" },
+          { id: "U003", name: "Dr. Sarah Johnson", email: "s.johnson@example.edu", role: "lecturer" },
+        ])
+      } finally {
+        setLoadingUsers(false)
+      }
+    }
+
+    fetchUsers()
+  }, [user?.id, toast])
+
+  // Filter users based on search query
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   // Fetch messages and notifications data
   useEffect(() => {
@@ -146,7 +234,7 @@ export default function Communications() {
   // Handle select changes
   const handleSelectChange = (value: string) => {
     // Find the recipient name based on the selected ID
-    const recipient = mockUsers.find((user) => user.id === value)
+    const recipient = users.find((u) => u.id === value)
     setNewMessage((prev) => ({
       ...prev,
       recipientId: value,
@@ -158,18 +246,50 @@ export default function Communications() {
   const handleSendMessage = async () => {
     if (!user?.id || !newMessage.recipientId) return
 
+    // For debugging - log the message data
+    console.log("Attempting to send message:", {
+      senderId: user.id,
+      senderName: user.name || "Unknown User",
+      ...newMessage,
+    })
+
     try {
       setLoading(true)
-      const sentMessage = await mockApi.sendMessage({
-        senderId: user.id,
-        senderName: user.name || "Unknown User",
-        ...newMessage,
-      })
-      setMessages((prev) => [sentMessage, ...prev])
-      toast({
-        title: "Success",
-        description: "Message sent successfully",
-      })
+
+      // Create a fallback implementation if the API method is missing
+      if (typeof mockApi.sendMessage !== "function") {
+        console.warn("mockApi.sendMessage is not available, using fallback implementation")
+
+        // Create a new message with the provided data
+        const sentMessage = {
+          id: `msg-${Date.now()}`,
+          senderId: user.id,
+          senderName: user.name || "Unknown User",
+          ...newMessage,
+          timestamp: new Date().toISOString(),
+          isRead: false,
+        }
+
+        setMessages((prev) => [sentMessage, ...prev])
+        toast({
+          title: "Success",
+          description: "Message sent successfully (using fallback implementation)",
+        })
+      } else {
+        // Use the actual API method
+        const sentMessage = await mockApi.sendMessage({
+          senderId: user.id,
+          senderName: user.name || "Unknown User",
+          ...newMessage,
+        })
+
+        setMessages((prev) => [sentMessage, ...prev])
+        toast({
+          title: "Success",
+          description: "Message sent successfully",
+        })
+      }
+
       // Reset form
       setNewMessage({
         recipientId: "",
@@ -178,6 +298,7 @@ export default function Communications() {
         content: "",
       })
     } catch (err) {
+      console.error("Error sending message:", err)
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -192,8 +313,16 @@ export default function Communications() {
   const handleDeleteMessage = async (id: string) => {
     try {
       setLoading(true)
-      await mockApi.deleteMessage(id)
-      setMessages((prev) => prev.filter((message) => message.id !== id))
+
+      // Create a fallback implementation if the API method is missing
+      if (typeof mockApi.deleteMessage !== "function") {
+        console.warn("mockApi.deleteMessage is not available, using fallback implementation")
+        setMessages((prev) => prev.filter((message) => message.id !== id))
+      } else {
+        await mockApi.deleteMessage(id)
+        setMessages((prev) => prev.filter((message) => message.id !== id))
+      }
+
       toast({
         title: "Success",
         description: "Message deleted successfully",
@@ -246,220 +375,163 @@ export default function Communications() {
     }
   }
 
-  // Mock users for the recipient select
-  const mockUsers = [
-    { id: "U001", name: "Admin User" },
-    { id: "U002", name: "Dr. Robert Chen" },
-    { id: "U003", name: "Dr. Sarah Johnson" },
-    { id: "U004", name: "John Smith" },
-    { id: "U005", name: "Emma Johnson" },
-  ]
-
   return (
-    <Tabs defaultValue="messages" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="messages">Messages</TabsTrigger>
-        <TabsTrigger value="announcements">Notifications</TabsTrigger>
-      </TabsList>
+    <div className="grid gap-4 md:grid-cols-3">
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>New Message</CardTitle>
+          <CardDescription>Send a message to students, faculty, or staff</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSendMessage()
+            }}
+          >
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                To
+              </label>
+              <Select onValueChange={handleSelectChange} value={newMessage.recipientId} disabled={loadingUsers}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingUsers ? "Loading users..." : "Select recipient"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
 
-      <TabsContent value="messages">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle>New Message</CardTitle>
-              <CardDescription>Send a message to students, faculty, or staff</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  handleSendMessage()
-                }}
-              >
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    To
-                  </label>
-                  <Select onValueChange={handleSelectChange} value={newMessage.recipientId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select recipient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockUsers.map((user) => (
+                  {loadingUsers ? (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Loading users...</span>
+                    </div>
+                  ) : filteredUsers.length > 0 ? (
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {filteredUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.name}
+                          <div className="flex items-center">
+                            <span>{user.name}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">({user.role})</span>
+                          </div>
+                          <span className="block text-xs text-muted-foreground">{user.email}</span>
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Subject
-                  </label>
-                  <Input
-                    id="subject"
-                    placeholder="Enter subject"
-                    value={newMessage.subject}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Message
-                  </label>
-                  <Textarea
-                    id="content"
-                    placeholder="Type your message here"
-                    className="min-h-[150px]"
-                    value={newMessage.content}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={loading || !newMessage.recipientId || !newMessage.subject || !newMessage.content}
+                    </div>
+                  ) : searchQuery ? (
+                    <div className="py-2 text-center text-muted-foreground">
+                      No users found matching "{searchQuery}"
+                    </div>
+                  ) : (
+                    <div className="py-2 text-center text-muted-foreground">No users found</div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Subject
+              </label>
+              <Input id="subject" placeholder="Enter subject" value={newMessage.subject} onChange={handleInputChange} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Message
+              </label>
+              <Textarea
+                id="content"
+                placeholder="Type your message here"
+                className="min-h-[150px]"
+                value={newMessage.content}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={
+                  loading || loadingUsers || !newMessage.recipientId || !newMessage.subject || !newMessage.content
+                }
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Send Message
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="col-span-1 md:col-span-2">
+        <CardHeader>
+          <CardTitle>Inbox</CardTitle>
+          <CardDescription>View and manage your messages</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <p>Loading messages...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col justify-center items-center h-64 text-amber-600">
+              <p>{error}</p>
+              <p className="text-sm mt-2">Using sample data instead.</p>
+            </div>
+          ) : messages.length > 0 ? (
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex items-start space-x-4 rounded-md border p-4 ${!message.isRead ? "bg-muted/50" : ""}`}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send Message
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="col-span-1 md:col-span-2">
-            <CardHeader>
-              <CardTitle>Inbox</CardTitle>
-              <CardDescription>View and manage your messages</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center items-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin mr-2" />
-                  <p>Loading messages...</p>
-                </div>
-              ) : error ? (
-                <div className="flex flex-col justify-center items-center h-64 text-amber-600">
-                  <p>{error}</p>
-                  <p className="text-sm mt-2">Using sample data instead.</p>
-                </div>
-              ) : messages.length > 0 ? (
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex items-start space-x-4 rounded-md border p-4 ${
-                        !message.isRead ? "bg-muted/50" : ""
-                      }`}
-                    >
-                      <Avatar>
-                        <AvatarImage src={`/placeholder.svg?height=40&width=40`} alt={message.senderName} />
-                        <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{message.senderName}</p>
-                            <p className="text-sm text-muted-foreground">From: {message.senderName}</p>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(message.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                        <p className="font-medium">{message.subject}</p>
-                        <p className="text-sm">{message.content}</p>
-                        <div className="flex items-center pt-2">
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            Reply
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-destructive"
-                            onClick={() => handleDeleteMessage(message.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
+                  <Avatar>
+                    <AvatarImage src={`/placeholder.svg?height=40&width=40`} alt={message.senderName} />
+                    <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{message.senderName}</p>
+                        <p className="text-sm text-muted-foreground">From: {message.senderName}</p>
                       </div>
+                      <p className="text-sm text-muted-foreground">{new Date(message.timestamp).toLocaleString()}</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex justify-center items-center h-64 text-muted-foreground">
-                  <p>No messages found.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="announcements">
-        <div className="grid gap-4 md:grid-cols-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>View and manage your notifications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center items-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin mr-2" />
-                  <p>Loading notifications...</p>
-                </div>
-              ) : error ? (
-                <div className="flex justify-center items-center h-64 text-red-500">
-                  <p>{error}</p>
-                </div>
-              ) : notifications.length > 0 ? (
-                <div className="space-y-4">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`rounded-md border p-4 ${!notification.isRead ? "bg-muted/50" : ""}`}
-                      onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">{notification.title}</h3>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline">{notification.type}</Badge>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(notification.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="mt-2">{notification.message}</p>
-                      <div className="mt-4 flex items-center space-x-2">
-                        {notification.link && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={notification.link}>View</a>
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => handleDeleteNotification(notification.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+                    <p className="font-medium">{message.subject}</p>
+                    <p className="text-sm">{message.content}</p>
+                    <div className="flex items-center pt-2">
+                      <Button variant="ghost" size="sm" className="h-8 px-2">
+                        Reply
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-destructive"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        Delete
+                      </Button>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              ) : (
-                <div className="flex justify-center items-center h-64 text-muted-foreground">
-                  <p>No notifications found.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-    </Tabs>
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-center items-center h-64 text-muted-foreground">
+              <p>No messages found.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
