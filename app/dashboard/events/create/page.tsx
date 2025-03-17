@@ -48,17 +48,6 @@ const EVENT_STATUS_OPTIONS = [
   { value: "Cancelled", label: "Cancelled" },
 ]
 
-const EVENT_RESOURCES = [
-  "Projector",
-  "Microphone",
-  "Whiteboard",
-  "Laptop",
-  "Video Conference",
-  "Chairs",
-  "Tables",
-  "Refreshments",
-]
-
 // Helper function to generate time options in 30-minute intervals
 const generateTimeOptions = (startTime = "") => {
   const times = []
@@ -107,6 +96,17 @@ export default function CreateEventPage() {
     resources: [] as string[],
   })
 
+  // Change this line
+  const [resources, setResources] = useState<Array<{ id: string; name: string }>>([])
+  const [isLoadingResources, setIsLoadingResources] = useState(false)
+
+  const [resourceAvailability, setResourceAvailability] = useState<
+    Record<string, { available: boolean; message?: string }>
+  >({})
+  const [resourceSearchTerm, setResourceSearchTerm] = useState("")
+  const [openResourcePopover, setOpenResourcePopover] = useState(false)
+  const [selectedResource, setSelectedResource] = useState<any>(null)
+
   const [facilities, setFacilities] = useState<any[]>([])
   const [isLoadingFacilities, setIsLoadingFacilities] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -130,6 +130,16 @@ export default function CreateEventPage() {
             (facility.location && facility.location.toLowerCase().includes(searchTerm.toLowerCase())),
         )
 
+  // Filter resources based on search term
+  const filteredResources =
+    resourceSearchTerm.trim() === ""
+      ? resources
+      : resources.filter(
+          (resource) =>
+            resource.name.toLowerCase().includes(resourceSearchTerm.toLowerCase()) ||
+            resource.id.toLowerCase().includes(resourceSearchTerm.toLowerCase()),
+        )
+
   useEffect(() => {
     const fetchFacilities = async () => {
       setIsLoadingFacilities(true)
@@ -150,6 +160,110 @@ export default function CreateEventPage() {
 
     fetchFacilities()
   }, [toast])
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      setIsLoadingResources(true)
+      try {
+        // Try to get resources from the API
+        let resourcesData = []
+
+        // Check if the getResources method exists
+        if (typeof api.getResources === "function") {
+          resourcesData = await api.getResources()
+        } else if (typeof api.getEventResources === "function") {
+          // Fallback to getEventResources if it exists
+          resourcesData = await api.getEventResources()
+        } else {
+          // If neither method exists, create new data
+          throw new Error("Resource API methods not available")
+        }
+
+        // Process the resources data based on its structure
+        let processedResources = []
+
+        if (Array.isArray(resourcesData)) {
+          if (resourcesData.length > 0) {
+            // Check if it's an array of strings or objects
+            if (typeof resourcesData[0] === "string") {
+              processedResources = resourcesData.map((r) => ({ id: r, name: r }))
+            } else if (typeof resourcesData[0] === "object") {
+              // If it's an array of objects, extract the id and name properties
+              processedResources = resourcesData.map((r) => ({
+                id: r.id || String(r),
+                name: r.name || r.title || r.id || String(r),
+              }))
+            }
+          }
+        }
+
+        // If no resources were found or processed, create new default resources
+        if (processedResources.length === 0) {
+          const defaultResourceNames = [
+            "Projector",
+            "Microphone",
+            "Whiteboard",
+            "Laptop",
+            "Video Conference",
+            "Chairs",
+            "Tables",
+            "Refreshments",
+          ]
+
+          processedResources = defaultResourceNames.map((name, index) => ({
+            id: `resource-${index + 1}`,
+            name,
+          }))
+
+          // If the API exists, try to create these resources
+          if (typeof api.createResource === "function") {
+            for (const resource of processedResources) {
+              try {
+                await api.createResource({ name: resource.name, type: "Equipment" })
+              } catch (error) {
+                console.error(`Failed to create resource ${resource.name}:`, error)
+              }
+            }
+          }
+        }
+
+        setResources(processedResources)
+      } catch (error) {
+        console.error("Failed to fetch resources:", error)
+        // Create new default resources if API fails
+        const defaultResources = [
+          "Projector",
+          "Microphone",
+          "Whiteboard",
+          "Laptop",
+          "Video Conference",
+          "Chairs",
+          "Tables",
+          "Refreshments",
+        ]
+        const processedResources = defaultResources.map((name, index) => ({
+          id: `resource-${index + 1}`,
+          name,
+        }))
+        setResources(processedResources)
+
+        // Try to create these resources in the API
+        if (typeof api.createResource === "function") {
+          for (const resource of processedResources) {
+            try {
+              await api.createResource({ name: resource.name, type: "Equipment" })
+            } catch (createError) {
+              console.error(`Failed to create resource ${resource.name}:`, createError)
+            }
+          }
+        }
+      } finally {
+        setIsLoadingResources(false)
+      }
+    }
+
+    fetchResources()
+  }, [])
 
   const checkFacilityTimeAvailability = (facilityId: string, dateReservations: any[]) => {
     if (!formData.startTime) return true
@@ -192,6 +306,49 @@ export default function CreateEventPage() {
     })
   }
 
+  const checkResourceAvailability = (resourceId: string, dateReservations: any[]) => {
+    if (!formData.startTime) return true
+
+    // Get reservations for this specific resource
+    const resourceReservations = dateReservations.filter(
+      (res) =>
+        res.resources &&
+        (Array.isArray(res.resources) ? res.resources.includes(resourceId) : res.resources === resourceId),
+    )
+
+    if (resourceReservations.length === 0) return true
+
+    // Convert form times to minutes for easier comparison
+    const startTimeParts = formData.startTime.split(":")
+    const startTimeMinutes = Number.parseInt(startTimeParts[0]) * 60 + Number.parseInt(startTimeParts[1])
+
+    let endTimeMinutes
+    if (formData.endTime) {
+      const endTimeParts = formData.endTime.split(":")
+      endTimeMinutes = Number.parseInt(endTimeParts[0]) * 60 + Number.parseInt(endTimeParts[1])
+    } else {
+      // Default to 1 hour if no end time is specified
+      endTimeMinutes = startTimeMinutes + 60
+    }
+
+    // Check for overlap with existing reservations
+    return !resourceReservations.some((reservation) => {
+      // Convert reservation times to minutes
+      const resStartTimeParts = reservation.time.split(" - ")[0].split(":")
+      const resStartTimeMinutes = Number.parseInt(resStartTimeParts[0]) * 60 + Number.parseInt(resStartTimeParts[1])
+
+      const resEndTimeParts = reservation.time.split(" - ")[1].split(":")
+      const resEndTimeMinutes = Number.parseInt(resEndTimeParts[0]) * 60 + Number.parseInt(resEndTimeParts[1])
+
+      // Check for overlap
+      return (
+        (startTimeMinutes >= resStartTimeMinutes && startTimeMinutes < resEndTimeMinutes) || // Start time is during an existing reservation
+        (endTimeMinutes > resStartTimeMinutes && endTimeMinutes <= resEndTimeMinutes) || // End time is during an existing reservation
+        (startTimeMinutes <= resStartTimeMinutes && endTimeMinutes >= resEndTimeMinutes) // Completely encompasses an existing reservation
+      )
+    })
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -205,11 +362,13 @@ export default function CreateEventPage() {
     setFormData((prev) => ({ ...prev, [name]: checked }))
   }
 
-  const handleResourceToggle = (resource: string, checked: boolean) => {
+  const handleResourceSelect = (resource: any) => {
+    setSelectedResource(resource)
     setFormData((prev) => ({
       ...prev,
-      resources: checked ? [...prev.resources, resource] : prev.resources.filter((r) => r !== resource),
+      resources: [resource.id],
     }))
+    setOpenResourcePopover(false)
   }
 
   const handleFacilitySelect = (facility: any) => {
@@ -298,6 +457,21 @@ export default function CreateEventPage() {
         })
 
         setFacilityAvailability(availabilityMap)
+      }
+
+      // Check availability for all resources
+      if (resources.length > 0) {
+        const resourceAvailabilityMap = {}
+
+        resources.forEach((resource) => {
+          const isAvailable = checkResourceAvailability(resource.id, dateReservations)
+          resourceAvailabilityMap[resource.id] = {
+            available: isAvailable,
+            message: isAvailable ? "Available at selected time" : "Already booked during this time",
+          }
+        })
+
+        setResourceAvailability(resourceAvailabilityMap)
       }
     } catch (error) {
       console.error("Failed to check availability:", error)
@@ -476,242 +650,454 @@ export default function CreateEventPage() {
               )}
             </div>
 
-            {/* Facility Selection Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="facilityId">
-                  Facility <span className="text-red-500">*</span>
-                </Label>
-                {formData.startDate && formData.startTime && (
-                  <div className="text-sm text-muted-foreground">
-                    Showing availability for {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                    {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                  </div>
-                )}
-              </div>
+            {/* Facility and Resources in one line */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="facilityId">
+                    Facility <span className="text-red-500">*</span>
+                  </Label>
+                  {formData.startDate && formData.startTime && (
+                    <div className="text-sm text-muted-foreground">
+                      Showing availability for {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                      {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                    </div>
+                  )}
+                </div>
 
-              <Popover open={openFacilityPopover} onOpenChange={setOpenFacilityPopover}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openFacilityPopover}
-                    className="w-full justify-between"
-                    aria-label="Select a facility - shows availability status and allows searching"
-                  >
-                    {selectedFacility ? (
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center">
-                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                          <span>{selectedFacility.name}</span>
+                <Popover open={openFacilityPopover} onOpenChange={setOpenFacilityPopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openFacilityPopover}
+                      className="w-full justify-between"
+                      aria-label="Select a facility - shows availability status and allows searching"
+                    >
+                      {selectedFacility ? (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center">
+                            <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span>{selectedFacility.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {formData.startDate && formData.startTime && facilityAvailability[selectedFacility.id] && (
+                              <Badge
+                                variant={
+                                  facilityAvailability[selectedFacility.id].available ? "outline" : "destructive"
+                                }
+                              >
+                                {facilityAvailability[selectedFacility.id].available ? (
+                                  <div className="flex items-center text-green-600 dark:text-green-400">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Available
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center text-red-600 dark:text-red-400">
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Booked
+                                  </div>
+                                )}
+                              </Badge>
+                            )}
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {formData.startDate && formData.startTime && facilityAvailability[selectedFacility.id] && (
-                            <Badge
-                              variant={facilityAvailability[selectedFacility.id].available ? "outline" : "destructive"}
-                            >
-                              {facilityAvailability[selectedFacility.id].available ? (
-                                <div className="flex items-center text-green-600 dark:text-green-400">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Available
-                                </div>
-                              ) : (
-                                <div className="flex items-center text-red-600 dark:text-red-400">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Booked
-                                </div>
-                              )}
-                            </Badge>
-                          )}
+                      ) : (
+                        <div className="flex items-center justify-between w-full">
+                          <span>Select facility</span>
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         </div>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <div className="flex items-center border-b px-3 py-2">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <input
+                          className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Search facilities..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between w-full">
-                        <span>Select facility</span>
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      </div>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <div className="flex items-center border-b px-3 py-2">
-                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                      <input
-                        className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Search facilities..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    {formData.startDate && formData.startTime && (
-                      <div className="border-b px-3 py-2 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span>
-                            Showing availability for {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                          </span>
-                          {isCheckingAvailability && (
-                            <div className="flex items-center">
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                              <span>Checking...</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex gap-2 mt-1">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle className="h-3 w-3 mr-1" /> Available
-                          </Badge>
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                            <XCircle className="h-3 w-3 mr-1" /> Booked
-                          </Badge>
-                        </div>
-                      </div>
-                    )}
-                    <CommandList className="max-h-[300px] overflow-auto">
-                      <CommandEmpty>No facilities found.</CommandEmpty>
-                      <CommandGroup>
-                        {isLoadingFacilities ? (
-                          <div className="flex items-center justify-center p-4">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span>Loading facilities...</span>
-                          </div>
-                        ) : (
-                          filteredFacilities.map((facility) => {
-                            const availability = facilityAvailability[facility.id]
-                            const isAvailable =
-                              !formData.startDate || !formData.startTime || !availability || availability.available
-
-                            return (
-                              <CommandItem
-                                key={facility.id}
-                                value={facility.id}
-                                onSelect={() => handleFacilitySelect(facility)}
-                                className="flex flex-col items-start py-2"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <div className="flex items-center">
-                                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">{facility.name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {formData.startDate && formData.startTime && (
-                                      <Badge variant={isAvailable ? "outline" : "destructive"}>
-                                        {isAvailable ? (
-                                          <div className="flex items-center text-green-600 dark:text-green-400">
-                                            <CheckCircle className="h-3 w-3 mr-1" />
-                                            Available
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center text-red-600 dark:text-red-400">
-                                            <XCircle className="h-3 w-3 mr-1" />
-                                            Booked
-                                          </div>
-                                        )}
-                                      </Badge>
-                                    )}
-                                    {facility.type && <Badge variant="outline">{facility.type}</Badge>}
-                                  </div>
-                                </div>
-                                <div className="flex items-center mt-1 text-xs text-muted-foreground">
-                                  {facility.location && <span className="mr-3">{facility.location}</span>}
-                                  {facility.capacity && (
-                                    <div className="flex items-center">
-                                      <Users className="h-3 w-3 mr-1" />
-                                      <span>Capacity: {facility.capacity}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            )
-                          })
-                        )}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-
-              <div className="text-xs text-muted-foreground mt-1 mb-2">
-                Displays facilities with availability status, search, and conflict detection
-              </div>
-
-              {/* Selected Facility Card */}
-              {selectedFacility && (
-                <div
-                  className={`mt-4 p-4 border rounded-md shadow-sm ${
-                    formData.startDate &&
-                    formData.startTime &&
-                    facilityAvailability[selectedFacility.id] &&
-                    !facilityAvailability[selectedFacility.id].available
-                      ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
-                      : "bg-muted/30"
-                  }`}
-                >
-                  <h4 className="text-sm font-medium mb-2">Selected Facility</h4>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{selectedFacility.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {formData.startDate && formData.startTime && facilityAvailability[selectedFacility.id] && (
-                        <Badge
-                          variant={facilityAvailability[selectedFacility.id].available ? "outline" : "destructive"}
-                          className="ml-auto"
-                        >
-                          {facilityAvailability[selectedFacility.id].available ? (
-                            <div className="flex items-center">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Available on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                      {formData.startDate && formData.startTime && (
+                        <div className="border-b px-3 py-2 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span>
+                              Showing availability for {new Date(formData.startDate).toLocaleDateString()} from{" "}
                               {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                            </span>
+                            {isCheckingAvailability && (
+                              <div className="flex items-center">
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                <span>Checking...</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle className="h-3 w-3 mr-1" /> Available
+                            </Badge>
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                              <XCircle className="h-3 w-3 mr-1" /> Booked
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+                      <CommandList className="max-h-[300px] overflow-auto">
+                        <CommandEmpty>No facilities found.</CommandEmpty>
+                        <CommandGroup>
+                          {isLoadingFacilities ? (
+                            <div className="flex items-center justify-center p-4">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Loading facilities...</span>
                             </div>
                           ) : (
-                            <div className="flex items-center">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Booked on {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                              {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                            </div>
-                          )}
-                        </Badge>
-                      )}
-                      {selectedFacility.type && <Badge variant="outline">{selectedFacility.type}</Badge>}
-                    </div>
-                  </div>
-                  {selectedFacility.description && (
-                    <p className="mt-1 text-sm text-muted-foreground border-t pt-2">{selectedFacility.description}</p>
-                  )}
-                  <div className="flex flex-wrap items-center mt-2 text-xs text-muted-foreground gap-3">
-                    {selectedFacility.location && (
-                      <span className="flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {selectedFacility.location}
-                      </span>
-                    )}
-                    {selectedFacility.capacity && (
-                      <span className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        <span>Capacity: {selectedFacility.capacity}</span>
-                      </span>
-                    )}
-                  </div>
+                            filteredFacilities.map((facility) => {
+                              const availability = facilityAvailability[facility.id]
+                              const isAvailable =
+                                !formData.startDate || !formData.startTime || !availability || availability.available
 
-                  {formData.startDate &&
-                    formData.startTime &&
-                    facilityAvailability[selectedFacility.id] &&
-                    !facilityAvailability[selectedFacility.id].available && (
-                      <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
-                        <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                        <span>
-                          This facility is already booked during the selected time. Scheduling this event may cause a
-                          conflict.
-                        </span>
-                      </div>
-                    )}
+                              return (
+                                <CommandItem
+                                  key={facility.id}
+                                  value={facility.id}
+                                  onSelect={() => handleFacilitySelect(facility)}
+                                  className="flex flex-col items-start py-2"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center">
+                                      <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                                      <span className="font-medium">{facility.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {formData.startDate && formData.startTime && (
+                                        <Badge variant={isAvailable ? "outline" : "destructive"}>
+                                          {isAvailable ? (
+                                            <div className="flex items-center text-green-600 dark:text-green-400">
+                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                              Available
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center text-red-600 dark:text-red-400">
+                                              <XCircle className="h-3 w-3 mr-1" />
+                                              Booked
+                                            </div>
+                                          )}
+                                        </Badge>
+                                      )}
+                                      {facility.type && <Badge variant="outline">{facility.type}</Badge>}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                                    {facility.location && <span className="mr-3">{facility.location}</span>}
+                                    {facility.capacity && (
+                                      <div className="flex items-center">
+                                        <Users className="h-3 w-3 mr-1" />
+                                        <span>Capacity: {facility.capacity}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              )
+                            })
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                <div className="text-xs text-muted-foreground mt-1 mb-2">
+                  Displays facilities with availability status, search, and conflict detection
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Resources</Label>
+                  {isLoadingResources && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      Loading resources...
+                    </div>
+                  )}
+                </div>
+
+                <Popover open={openResourcePopover} onOpenChange={setOpenResourcePopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openResourcePopover}
+                      className="w-full justify-between"
+                      aria-label="Select a resource - shows availability status and allows searching"
+                    >
+                      {selectedResource ? (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center">
+                            <span>{selectedResource.name}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">(ID: {selectedResource.id})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {formData.startDate && formData.startTime && resourceAvailability[selectedResource.id] && (
+                              <Badge
+                                variant={
+                                  resourceAvailability[selectedResource.id].available ? "outline" : "destructive"
+                                }
+                              >
+                                {resourceAvailability[selectedResource.id].available ? (
+                                  <div className="flex items-center text-green-600 dark:text-green-400">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Available
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center text-red-600 dark:text-red-400">
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Booked
+                                  </div>
+                                )}
+                              </Badge>
+                            )}
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between w-full">
+                          <span>Select resource</span>
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </div>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <div className="flex items-center border-b px-3 py-2">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <input
+                          className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Search resources..."
+                          value={resourceSearchTerm}
+                          onChange={(e) => setResourceSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      {formData.startDate && formData.startTime && (
+                        <div className="border-b px-3 py-2 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span>
+                              Showing availability for {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                              {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                            </span>
+                            {isCheckingAvailability && (
+                              <div className="flex items-center">
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                <span>Checking...</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle className="h-3 w-3 mr-1" /> Available
+                            </Badge>
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                              <XCircle className="h-3 w-3 mr-1" /> Booked
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+                      <CommandList className="max-h-[300px] overflow-auto">
+                        <CommandEmpty>No resources found.</CommandEmpty>
+                        <CommandGroup>
+                          {isLoadingResources ? (
+                            <div className="flex items-center justify-center p-4">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Loading resources...</span>
+                            </div>
+                          ) : (
+                            filteredResources.map((resource) => {
+                              const availability = resourceAvailability[resource.id]
+                              const isAvailable =
+                                !formData.startDate || !formData.startTime || !availability || availability.available
+
+                              return (
+                                <CommandItem
+                                  key={resource.id}
+                                  value={resource.id}
+                                  onSelect={() => handleResourceSelect(resource)}
+                                  className="flex flex-col items-start py-2"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center">
+                                      <span className="font-medium">{resource.name}</span>
+                                      <span className="ml-2 text-xs text-muted-foreground">(ID: {resource.id})</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {formData.startDate && formData.startTime && (
+                                        <Badge variant={isAvailable ? "outline" : "destructive"}>
+                                          {isAvailable ? (
+                                            <div className="flex items-center text-green-600 dark:text-green-400">
+                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                              Available
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center text-red-600 dark:text-red-400">
+                                              <XCircle className="h-3 w-3 mr-1" />
+                                              Booked
+                                            </div>
+                                          )}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              )
+                            })
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                <div className="text-xs text-muted-foreground mt-1 mb-2">
+                  Displays resources with availability status, search, and conflict detection
+                </div>
+              </div>
             </div>
+
+            {/* Selected Facility Card */}
+            {selectedFacility && (
+              <div
+                className={`mt-4 p-4 border rounded-md shadow-sm ${
+                  formData.startDate &&
+                  formData.startTime &&
+                  facilityAvailability[selectedFacility.id] &&
+                  !facilityAvailability[selectedFacility.id].available
+                    ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                    : "bg-muted/30"
+                }`}
+              >
+                <h4 className="text-sm font-medium mb-2">Selected Facility</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{selectedFacility.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {formData.startDate && formData.startTime && facilityAvailability[selectedFacility.id] && (
+                      <Badge
+                        variant={facilityAvailability[selectedFacility.id].available ? "outline" : "destructive"}
+                        className="ml-auto"
+                      >
+                        {facilityAvailability[selectedFacility.id].available ? (
+                          <div className="flex items-center">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Available on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Booked on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                          </div>
+                        )}
+                      </Badge>
+                    )}
+                    {selectedFacility.type && <Badge variant="outline">{selectedFacility.type}</Badge>}
+                  </div>
+                </div>
+                {selectedFacility.description && (
+                  <p className="mt-1 text-sm text-muted-foreground border-t pt-2">{selectedFacility.description}</p>
+                )}
+                <div className="flex flex-wrap items-center mt-2 text-xs text-muted-foreground gap-3">
+                  {selectedFacility.location && (
+                    <span className="flex items-center">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {selectedFacility.location}
+                    </span>
+                  )}
+                  {selectedFacility.capacity && (
+                    <span className="flex items-center">
+                      <Users className="h-3 w-3 mr-1" />
+                      <span>Capacity: {selectedFacility.capacity}</span>
+                    </span>
+                  )}
+                </div>
+
+                {formData.startDate &&
+                  formData.startTime &&
+                  facilityAvailability[selectedFacility.id] &&
+                  !facilityAvailability[selectedFacility.id].available && (
+                    <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
+                      <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        This facility is already booked during the selected time. Scheduling this event may cause a
+                        conflict.
+                      </span>
+                    </div>
+                  )}
+              </div>
+            )}
+
+            {/* Selected Resource Card */}
+            {selectedResource && (
+              <div
+                className={`mt-4 p-4 border rounded-md shadow-sm ${
+                  formData.startDate &&
+                  formData.startTime &&
+                  resourceAvailability[selectedResource.id] &&
+                  !resourceAvailability[selectedResource.id].available
+                    ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                    : "bg-muted/30"
+                }`}
+              >
+                <h4 className="text-sm font-medium mb-2">Selected Resource</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <span className="font-medium">{selectedResource.name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">(ID: {selectedResource.id})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {formData.startDate && formData.startTime && resourceAvailability[selectedResource.id] && (
+                      <Badge
+                        variant={resourceAvailability[selectedResource.id].available ? "outline" : "destructive"}
+                        className="ml-auto"
+                      >
+                        {resourceAvailability[selectedResource.id].available ? (
+                          <div className="flex items-center">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Available on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Booked on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                          </div>
+                        )}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {formData.startDate &&
+                  formData.startTime &&
+                  resourceAvailability[selectedResource.id] &&
+                  !resourceAvailability[selectedResource.id].available && (
+                    <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
+                      <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        This resource is already booked during the selected time. Scheduling this event may cause a
+                        conflict.
+                      </span>
+                    </div>
+                  )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -787,24 +1173,6 @@ export default function CreateEventPage() {
                 <Label htmlFor="isPublic" className="font-normal">
                   Make this event public
                 </Label>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Required Resources</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {EVENT_RESOURCES.map((resource) => (
-                  <div key={resource} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`resource-${resource}`}
-                      checked={formData.resources.includes(resource)}
-                      onCheckedChange={(checked) => handleResourceToggle(resource, checked as boolean)}
-                    />
-                    <Label htmlFor={`resource-${resource}`} className="font-normal">
-                      {resource}
-                    </Label>
-                  </div>
-                ))}
               </div>
             </div>
           </CardContent>

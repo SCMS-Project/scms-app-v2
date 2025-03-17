@@ -226,7 +226,7 @@ export default function EventsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Event</TableHead>
-                    <TableHead>Date & Time</TableHead>
+                    <TableHead className="min-w-[180px]">Date & Time</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
