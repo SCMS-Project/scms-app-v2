@@ -26,7 +26,9 @@ export default function DashboardLayout({
               isSidebarOpen ? "lg:ml-64" : "lg:ml-[60px]",
             )}
           >
-            <div className="p-4 md:p-6">{children}</div>
+            <div className="container mx-auto p-4 md:p-6 max-w-7xl bg-background rounded-lg shadow-sm border border-border/40 my-4 md:my-6">
+              {children}
+            </div>
           </main>
         </div>
       </div>

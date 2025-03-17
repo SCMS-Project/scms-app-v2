@@ -9,11 +9,22 @@ import { BookMarked, ArrowRight } from "lucide-react"
 import { apiService } from "../../services/api-service" // This should be correct
 import type { Subject } from "../../types"
 import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function SubjectsModule() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false)
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -38,6 +49,11 @@ export default function SubjectsModule() {
       counts[subject.department] = (counts[subject.department] || 0) + 1
     })
     return counts
+  }
+
+  const handleViewDetails = (subject: Subject) => {
+    setSelectedSubject(subject)
+    setIsViewDetailsOpen(true)
   }
 
   const departmentCounts = getDepartmentCounts()
@@ -72,6 +88,49 @@ export default function SubjectsModule() {
           </Button>
         </div>
       </CardContent>
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Subject Details</DialogTitle>
+            <DialogDescription>Detailed information about the selected subject.</DialogDescription>
+          </DialogHeader>
+          {selectedSubject && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">ID:</div>
+                <div className="col-span-2">{selectedSubject.id}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Code:</div>
+                <div className="col-span-2">{selectedSubject.code || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Name:</div>
+                <div className="col-span-2">{selectedSubject.name || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Department:</div>
+                <div className="col-span-2">{selectedSubject.department || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Credits:</div>
+                <div className="col-span-2">{selectedSubject.credits || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Description:</div>
+                <div className="col-span-2">{selectedSubject.description || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Courses:</div>
+                <div className="col-span-2">{selectedSubject.courseIds ? selectedSubject.courseIds.length : 0}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

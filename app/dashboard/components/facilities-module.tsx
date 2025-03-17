@@ -1,6 +1,38 @@
 "use client"
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+
+interface Facility {
+  id: string
+  code?: string | null
+  name?: string | null
+  type?: string | null
+  capacity?: string | null
+  rooms?: number | null
+  status?: string | null
+}
+
 export default function FacilitiesModule() {
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false)
+  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null)
+
+  const handleViewDetails = (facility: Facility) => {
+    setSelectedFacility(facility)
+    setIsViewDetailsOpen(true)
+  }
+
+  const facility: Facility = { id: "123" } // Dummy facility data for testing
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Facilities Management</h2>
@@ -23,6 +55,52 @@ export default function FacilitiesModule() {
           <li>Receive notifications about reservation status changes</li>
         </ul>
       </div>
+
+      <DropdownMenuItem onClick={() => handleViewDetails(facility)}>View details</DropdownMenuItem>
+
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Facility Details</DialogTitle>
+            <DialogDescription>Detailed information about the selected facility.</DialogDescription>
+          </DialogHeader>
+          {selectedFacility && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">ID:</div>
+                <div className="col-span-2">{selectedFacility.id}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Code:</div>
+                <div className="col-span-2">{selectedFacility.code || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Name:</div>
+                <div className="col-span-2">{selectedFacility.name || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Type:</div>
+                <div className="col-span-2">{selectedFacility.type || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Capacity:</div>
+                <div className="col-span-2">{selectedFacility.capacity || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Rooms:</div>
+                <div className="col-span-2">{selectedFacility.rooms || 0}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Status:</div>
+                <div className="col-span-2">{selectedFacility.status || "N/A"}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

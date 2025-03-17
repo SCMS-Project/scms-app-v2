@@ -36,18 +36,16 @@ import {
 } from "@/components/ui/pagination"
 import { MoreHorizontal, Plus, Search, Filter, Loader2 } from "lucide-react"
 import { api } from "@/app/services/api"
-import type { Lecturer } from "../../types" // Changed from Faculty to Lecturer
+import type { Lecturer } from "../../types"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LecturersModule() {
-  // Changed from FacultyModule to LecturersModule
   const [searchQuery, setSearchQuery] = useState("")
-  const [isAddLecturerOpen, setIsAddLecturerOpen] = useState(false) // Changed from isAddFacultyOpen to isAddLecturerOpen
-  const [lecturers, setLecturers] = useState<Lecturer[]>([]) // Changed from faculty to lecturers
+  const [isAddLecturerOpen, setIsAddLecturerOpen] = useState(false)
+  const [lecturers, setLecturers] = useState<Lecturer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [newLecturer, setNewLecturer] = useState<Omit<Lecturer, "id">>({
-    // Changed from newFaculty to newLecturer
     name: "",
     email: "",
     department: "",
@@ -57,20 +55,24 @@ export default function LecturersModule() {
 
   const { toast } = useToast()
 
-  // Fetch lecturers data
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false)
+  const [selectedLecturer, setSelectedLecturer] = useState<Lecturer | null>(null)
+
+  const [isEditLecturerOpen, setIsEditLecturerOpen] = useState(false)
+  const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null)
+
   useEffect(() => {
     const fetchLecturers = async () => {
-      // Changed from fetchFaculty to fetchLecturers
       try {
         setLoading(true)
-        const data = await api.getLecturers() // Changed from getFaculty to getLecturers
-        setLecturers(data) // Changed from setFaculty to setLecturers
+        const data = await api.getLecturers()
+        setLecturers(data)
         setError(null)
       } catch (err) {
-        setError("Failed to fetch lecturers data") // Changed from faculty to lecturers
+        setError("Failed to fetch lecturers data")
         toast({
           title: "Error",
-          description: "Failed to load lecturers data. Please try again.", // Changed from faculty to lecturers
+          description: "Failed to load lecturers data. Please try again.",
           variant: "destructive",
         })
       } finally {
@@ -78,12 +80,10 @@ export default function LecturersModule() {
       }
     }
 
-    fetchLecturers() // Changed from fetchFaculty to fetchLecturers
+    fetchLecturers()
   }, [toast])
 
-  // Filter lecturers based on search query
   const filteredLecturers = lecturers.filter(
-    // Changed from filteredFaculty and faculty to filteredLecturers and lecturers
     (member) =>
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,27 +92,22 @@ export default function LecturersModule() {
       member.position.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
-    setNewLecturer((prev) => ({ ...prev, [id]: value })) // Changed from setNewFaculty to setNewLecturer
+    setNewLecturer((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle select changes
   const handleSelectChange = (id: string, value: string) => {
-    setNewLecturer((prev) => ({ ...prev, [id]: value })) // Changed from setNewFaculty to setNewLecturer
+    setNewLecturer((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Handle lecturer creation
   const handleCreateLecturer = async () => {
-    // Changed from handleCreateFaculty to handleCreateLecturer
     try {
       setLoading(true)
-      const createdLecturer = await api.createLecturer(newLecturer) // Changed from createFacultyMember to createLecturer
-      setLecturers((prev) => [...prev, createdLecturer]) // Changed from setFaculty to setLecturers
-      setIsAddLecturerOpen(false) // Changed from setIsAddFacultyOpen to setIsAddLecturerOpen
+      const createdLecturer = await api.createLecturer(newLecturer)
+      setLecturers((prev) => [...prev, createdLecturer])
+      setIsAddLecturerOpen(false)
       setNewLecturer({
-        // Changed from setNewFaculty to setNewLecturer
         name: "",
         email: "",
         department: "",
@@ -121,12 +116,12 @@ export default function LecturersModule() {
       })
       toast({
         title: "Success",
-        description: "Lecturer added successfully", // Changed from Faculty member to Lecturer
+        description: "Lecturer added successfully",
       })
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to add lecturer. Please try again.", // Changed from faculty member to lecturer
+        description: "Failed to add lecturer. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -134,21 +129,62 @@ export default function LecturersModule() {
     }
   }
 
-  // Handle lecturer deletion
   const handleDeleteLecturer = async (id: string) => {
-    // Changed from handleDeleteFaculty to handleDeleteLecturer
     try {
       setLoading(true)
-      await api.deleteLecturer(id) // Changed from deleteFacultyMember to deleteLecturer
-      setLecturers((prev) => prev.filter((member) => member.id !== id)) // Changed from setFaculty to setLecturers
+      await api.deleteLecturer(id)
+      setLecturers((prev) => prev.filter((member) => member.id !== id))
       toast({
         title: "Success",
-        description: "Lecturer deleted successfully", // Changed from Faculty member to Lecturer
+        description: "Lecturer deleted successfully",
       })
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to delete lecturer. Please try again.", // Changed from faculty member to lecturer
+        description: "Failed to delete lecturer. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewDetails = (lecturer: Lecturer) => {
+    setSelectedLecturer(lecturer)
+    setIsViewDetailsOpen(true)
+  }
+
+  const handleEditLecturer = (lecturer: Lecturer) => {
+    setEditingLecturer({ ...lecturer })
+    setIsEditLecturerOpen(true)
+  }
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target
+    setEditingLecturer((prev) => (prev ? { ...prev, [id]: value } : null))
+  }
+
+  const handleEditSelectChange = (id: string, value: string) => {
+    setEditingLecturer((prev) => (prev ? { ...prev, [id]: value } : null))
+  }
+
+  const handleUpdateLecturer = async () => {
+    if (!editingLecturer) return
+
+    try {
+      setLoading(true)
+      const updatedLecturer = await api.updateLecturer(editingLecturer.id, editingLecturer)
+      setLecturers((prev) => prev.map((lecturer) => (lecturer.id === updatedLecturer.id ? updatedLecturer : lecturer)))
+      setIsEditLecturerOpen(false)
+      setEditingLecturer(null)
+      toast({
+        title: "Success",
+        description: "Lecturer updated successfully",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update lecturer. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -159,13 +195,13 @@ export default function LecturersModule() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold">Lecturer Management</h2> {/* Changed from Faculty to Lecturer */}
+        <h2 className="text-2xl font-bold">Lecturer Management</h2>
         <div className="flex flex-wrap gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search lecturers..." // Changed from faculty to lecturers
+              placeholder="Search lecturers..."
               className="w-full sm:w-[250px] pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -175,18 +211,15 @@ export default function LecturersModule() {
             <Filter className="h-4 w-4" />
           </Button>
           <Dialog open={isAddLecturerOpen} onOpenChange={setIsAddLecturerOpen}>
-            {" "}
-            {/* Changed from isAddFacultyOpen to isAddLecturerOpen */}
             <DialogTrigger asChild>
               <Button className="gap-1">
-                <Plus className="h-4 w-4" /> Add Lecturer {/* Changed from Faculty to Lecturer */}
+                <Plus className="h-4 w-4" /> Add Lecturer
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Lecturer</DialogTitle> {/* Changed from Faculty Member to Lecturer */}
-                <DialogDescription>Enter the details of the new lecturer below.</DialogDescription>{" "}
-                {/* Changed from faculty member to lecturer */}
+                <DialogTitle>Add New Lecturer</DialogTitle>
+                <DialogDescription>Enter the details of the new lecturer below.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -197,7 +230,7 @@ export default function LecturersModule() {
                     id="name"
                     placeholder="Dr. John Smith"
                     className="col-span-3"
-                    value={newLecturer.name} // Changed from newFaculty to newLecturer
+                    value={newLecturer.name}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -208,9 +241,9 @@ export default function LecturersModule() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="lecturer@example.edu" // Changed from faculty to lecturer
+                    placeholder="lecturer@example.edu"
                     className="col-span-3"
-                    value={newLecturer.email} // Changed from newFaculty to newLecturer
+                    value={newLecturer.email}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -251,12 +284,9 @@ export default function LecturersModule() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddLecturerOpen(false)}>
-                  {" "}
-                  {/* Changed from setIsAddFacultyOpen to setIsAddLecturerOpen */}
                   Cancel
                 </Button>
                 <Button onClick={handleCreateLecturer} disabled={loading}>
-                  {" "}
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save
                 </Button>
@@ -285,7 +315,7 @@ export default function LecturersModule() {
                 <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex justify-center items-center">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    Loading lecturers data... {/* Changed from faculty to lecturers */}
+                    Loading lecturers data...
                   </div>
                 </TableCell>
               </TableRow>
@@ -295,46 +325,40 @@ export default function LecturersModule() {
                   {error}
                 </TableCell>
               </TableRow>
-            ) : filteredLecturers.length > 0 ? ( // Changed from filteredFaculty to filteredLecturers
-              filteredLecturers.map(
-                (
-                  member, // Changed from filteredFaculty to filteredLecturers
-                ) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.id}</TableCell>
-                    <TableCell>{member.name}</TableCell>
-                    <TableCell>{member.email}</TableCell>
-                    <TableCell>{member.department}</TableCell>
-                    <TableCell>{member.position}</TableCell>
-                    <TableCell>{member.courses}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>View details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit lecturer</DropdownMenuItem> {/* Changed from faculty to lecturer */}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteLecturer(member.id)}>
-                            {" "}
-                            {/* Changed from handleDeleteFaculty to handleDeleteLecturer */}
-                            Delete lecturer {/* Changed from faculty to lecturer */}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ),
-              )
+            ) : filteredLecturers.length > 0 ? (
+              filteredLecturers.map((lecturer) => (
+                <TableRow key={lecturer.id}>
+                  <TableCell className="font-medium">{lecturer.id}</TableCell>
+                  <TableCell>{lecturer.name}</TableCell>
+                  <TableCell>{lecturer.email}</TableCell>
+                  <TableCell>{lecturer.department}</TableCell>
+                  <TableCell>{lecturer.position}</TableCell>
+                  <TableCell>{lecturer.courses}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleViewDetails(lecturer)}>View details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditLecturer(lecturer)}>Edit lecturer</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteLecturer(lecturer.id)}>
+                          Delete lecturer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  No lecturers found. {/* Changed from faculty members to lecturers */}
+                  No lecturers found.
                 </TableCell>
               </TableRow>
             )}
@@ -363,6 +387,135 @@ export default function LecturersModule() {
           </PaginationItem>
         </PaginationContent>
       </Pagination>
+
+      {/* View Details Dialog */}
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Lecturer Details</DialogTitle>
+            <DialogDescription>Detailed information about the selected lecturer.</DialogDescription>
+          </DialogHeader>
+          {selectedLecturer && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">ID:</div>
+                <div className="col-span-2">{selectedLecturer.id}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Name:</div>
+                <div className="col-span-2">{selectedLecturer.name || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Email:</div>
+                <div className="col-span-2">{selectedLecturer.email || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Department:</div>
+                <div className="col-span-2">{selectedLecturer.department || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Position:</div>
+                <div className="col-span-2">{selectedLecturer.position || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Courses:</div>
+                <div className="col-span-2">{selectedLecturer.courses || 0}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Lecturer Dialog */}
+      <Dialog open={isEditLecturerOpen} onOpenChange={setIsEditLecturerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Lecturer</DialogTitle>
+            <DialogDescription>Update the details of the lecturer below.</DialogDescription>
+          </DialogHeader>
+          {editingLecturer && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Full Name
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Dr. John Smith"
+                  className="col-span-3"
+                  value={editingLecturer.name}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="lecturer@example.edu"
+                  className="col-span-3"
+                  value={editingLecturer.email}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="department" className="text-right">
+                  Department
+                </Label>
+                <Select
+                  defaultValue={editingLecturer.department}
+                  onValueChange={(value) => handleEditSelectChange("department", value)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Computer Science">Computer Science</SelectItem>
+                    <SelectItem value="Engineering">Engineering</SelectItem>
+                    <SelectItem value="Business">Business</SelectItem>
+                    <SelectItem value="Medicine">Medicine</SelectItem>
+                    <SelectItem value="Arts">Arts</SelectItem>
+                    <SelectItem value="Sciences">Sciences</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="position" className="text-right">
+                  Position
+                </Label>
+                <Select
+                  defaultValue={editingLecturer.position}
+                  onValueChange={(value) => handleEditSelectChange("position", value)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Professor">Professor</SelectItem>
+                    <SelectItem value="Associate Professor">Associate Professor</SelectItem>
+                    <SelectItem value="Assistant Professor">Assistant Professor</SelectItem>
+                    <SelectItem value="Lecturer">Lecturer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditLecturerOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateLecturer} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

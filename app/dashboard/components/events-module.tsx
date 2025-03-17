@@ -8,10 +8,20 @@ import { useEffect, useState } from "react"
 import { apiService } from "../../services/api-service" // This should be correct
 import { format, parseISO } from "date-fns"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function EventsModule() {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null)
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -55,6 +65,11 @@ export default function EventsModule() {
       default:
         return "default"
     }
+  }
+
+  const handleViewDetails = (event: any) => {
+    setSelectedEvent(event)
+    setIsViewDetailsOpen(true)
   }
 
   return (
@@ -137,6 +152,70 @@ export default function EventsModule() {
           <Button variant="link">View All Events</Button>
         </Link>
       </div>
+
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Event Details</DialogTitle>
+            <DialogDescription>Detailed information about the selected event.</DialogDescription>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">ID:</div>
+                <div className="col-span-2">{selectedEvent.id}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Title:</div>
+                <div className="col-span-2">{selectedEvent.title || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Type:</div>
+                <div className="col-span-2">{selectedEvent.type || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Description:</div>
+                <div className="col-span-2">{selectedEvent.description || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Organizer:</div>
+                <div className="col-span-2">{selectedEvent.organizer || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Location:</div>
+                <div className="col-span-2">{selectedEvent.location || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Start Date:</div>
+                <div className="col-span-2">{selectedEvent.startDate || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Start Time:</div>
+                <div className="col-span-2">{selectedEvent.startTime || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">End Date:</div>
+                <div className="col-span-2">{selectedEvent.endDate || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">End Time:</div>
+                <div className="col-span-2">{selectedEvent.endTime || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Attendees:</div>
+                <div className="col-span-2">{selectedEvent.attendees || 0}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium">Status:</div>
+                <div className="col-span-2">{selectedEvent.status || "N/A"}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -6,7 +6,12 @@ export const ROLES = {
 }
 
 // For backward compatibility
-export const USER_ROLES = ROLES
+export const USER_ROLES = {
+  ADMIN: "admin",
+  STUDENT: "student",
+  LECTURER: "lecturer",
+  STAFF: "staff",
+}
 
 export type UserRole = (typeof ROLES)[keyof typeof ROLES]
 
@@ -137,7 +142,12 @@ export const SUBJECT_CREDITS = [
 ]
 
 // For backward compatibility with EVENT_STATUS_OPTIONS
-export const EVENT_STATUS_OPTIONS = EVENT_STATUS
+export const EVENT_STATUS_OPTIONS = [
+  { value: "Upcoming", label: "Upcoming" },
+  { value: "In Progress", label: "In Progress" },
+  { value: "Completed", label: "Completed" },
+  { value: "Cancelled", label: "Cancelled" },
+]
 
 // For backward compatibility with FACILITY_STATUS_OPTIONS
 export const FACILITY_STATUS_OPTIONS = FACILITY_STATUS
@@ -151,9 +161,29 @@ export const EVENT_RESOURCES = [
   "Microphone",
   "Whiteboard",
   "Laptop",
-  "Video Conference Equipment",
+  "Video Conference",
   "Chairs",
   "Tables",
   "Refreshments",
 ]
+
+// Define event resources, status options, and types
+
+export const EVENT_TYPES_EXTENDED = [
+  { value: "Academic", label: "Academic" },
+  { value: "Social", label: "Social" },
+  { value: "Career", label: "Career" },
+  { value: "Workshop", label: "Workshop" },
+  { value: "Seminar", label: "Seminar" },
+  { value: "Guest Lecture", label: "Guest Lecture" },
+  { value: "Student Council", label: "Student Council" },
+]
+
+// Permission levels
+export const PERMISSIONS = {
+  READ: "read",
+  WRITE: "write",
+  DELETE: "delete",
+  MANAGE: "manage",
+}
 

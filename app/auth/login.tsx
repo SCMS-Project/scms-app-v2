@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,10 +17,30 @@ export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loginAttempted, setLoginAttempted] = useState(false)
 
-  const { login } = useAuth()
+  const { login, user, error: authError } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard")
+    }
+  }, [user, router])
+
+  // Show toast for auth errors
+  useEffect(() => {
+    if (authError && loginAttempted) {
+      toast({
+        title: "Login Error",
+        description: authError,
+        variant: "destructive",
+      })
+      setLoginAttempted(false)
+    }
+  }, [authError, toast, loginAttempted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,13 +56,21 @@ export default function Login() {
 
     try {
       setIsSubmitting(true)
+      setLoginAttempted(true)
+
+      console.log("Submitting login form with:", email, password)
+
       await login(email, password)
+
       toast({
         title: "Success",
         description: "You have been logged in successfully",
       })
-      router.push("/dashboard")
+
+      // Router push is handled in the login function
     } catch (error) {
+      console.error("Login form error:", error)
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Login failed",
@@ -91,6 +119,15 @@ export default function Login() {
                 required
               />
             </div>
+
+            {/* Debug info for development */}
+            {process.env.NODE_ENV !== "production" && (
+              <div className="text-xs text-gray-500 border border-gray-200 p-2 rounded">
+                <p>For testing, you can use:</p>
+                <p>Email: admin@example.com</p>
+                <p>Password: password123</p>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isSubmitting}>

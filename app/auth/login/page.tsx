@@ -27,21 +27,39 @@ export default function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      await login(email, password)
-      router.push("/dashboard")
+      // Validate inputs before attempting login
+      if (!email.trim() || !password.trim()) {
+        setError("Please enter both email and password")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Attempt login with robust error handling
+      try {
+        await login(email, password)
+        router.push("/dashboard")
+      } catch (loginErr) {
+        // Always show a user-friendly message regardless of the actual error
+        setError("Invalid email or password")
+        console.error("Login error:", loginErr)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.")
+      // Catch-all error handler
+      console.error("Form submission error:", err)
+      setError("Invalid email or password")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
+    <div className="flex items-center justify-center min-h-screen bg-gray-950">
+      <Card className="w-full max-w-md bg-gray-900 border-gray-800">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Login</CardTitle>
-          <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
+          <CardTitle className="text-2xl text-center text-white">Login</CardTitle>
+          <CardDescription className="text-center text-gray-400">
+            Enter your credentials to access your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -53,7 +71,9 @@ export default function LoginPage() {
             )}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-gray-200">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -61,28 +81,32 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-gray-200">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="bg-gray-800 border-gray-700 text-white"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full bg-white text-gray-900 hover:bg-gray-200" disabled={isSubmitting}>
                 {isSubmitting ? "Logging in..." : "Login"}
               </Button>
             </div>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-400">
             Don&apos;t have an account?{" "}
-            <Link href="/auth/register" className="text-blue-600 hover:text-blue-800">
+            <Link href="/auth/register" className="text-blue-400 hover:text-blue-300">
               Register
             </Link>
           </p>

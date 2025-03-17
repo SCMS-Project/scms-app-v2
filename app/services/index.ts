@@ -1,3 +1,3 @@
 // Export the API service
-export { apiService } from "./api-service"
+export { api } from "./api"
 

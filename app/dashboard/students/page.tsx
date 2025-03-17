@@ -34,8 +34,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { MoreHorizontal, Plus, Search, Download, Upload, Filter, Loader2 } from "lucide-react"
-import { api } from "@/app/services/api"
+import { MoreHorizontal, Plus, Search, Download, Upload, Filter, Loader2, AlertTriangle } from "lucide-react"
+import { api } from "@/app/services/api" // Use the unified API service instead of mockApi directly
 import type { Student } from "../../types"
 import { useToast } from "@/hooks/use-toast"
 import { DEPARTMENTS } from "@/app/constants/roles"
@@ -58,20 +58,41 @@ export default function Students() {
 
   const { toast } = useToast()
 
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [isEditStudentOpen, setIsEditStudentOpen] = useState(false)
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null)
+
+  const handleViewDetails = (student: Student) => {
+    setSelectedStudent(student)
+    setIsViewDetailsOpen(true)
+  }
+
   useEffect(() => {
     const fetchStudents = async () => {
       try {
         setLoading(true)
-        const data = await api.getStudents()
-        setStudents(data)
-        setError(null)
+        // Check if the API service is available and if the getStudents method exists
+        if (api && typeof api.getStudents === "function") {
+          const data = await api.getStudents()
+          if (Array.isArray(data)) {
+            setStudents(data)
+            setError(null)
+          } else {
+            console.error("Invalid data format returned from API:", data)
+            throw new Error("Invalid data format returned from API")
+          }
+        } else {
+          console.error("API method not implemented: getStudents")
+          setError("API method not implemented: getStudents")
+          setStudents([])
+        }
       } catch (err) {
-        setError("Failed to fetch students data")
-        toast({
-          title: "Error",
-          description: "Failed to load students data. Please try again.",
-          variant: "destructive",
-        })
+        console.error("Error fetching students:", err)
+        setError("Failed to fetch students data. Please check the API connection.")
+        setStudents([])
       } finally {
         setLoading(false)
       }
@@ -125,18 +146,27 @@ export default function Students() {
   const handleCreateStudent = async () => {
     try {
       setLoading(true)
-      const createdStudent = await api.createStudent(newStudent)
-      setStudents((prev) => [...prev, createdStudent])
-      setIsAddStudentOpen(false)
-      setNewStudent({
-        name: "",
-        email: "",
-        department: "",
-      })
-      toast({
-        title: "Success",
-        description: "Student added successfully",
-      })
+      if (api && typeof api.createStudent === "function") {
+        const createdStudent = await api.createStudent(newStudent)
+        setStudents((prev) => [...prev, createdStudent])
+        setIsAddStudentOpen(false)
+        setNewStudent({
+          name: "",
+          email: "",
+          department: "",
+        })
+        toast({
+          title: "Success",
+          description: "Student added successfully",
+        })
+      } else {
+        console.error("mockApi.createStudent is not implemented")
+        toast({
+          title: "Error",
+          description: "API method not implemented: createStudent",
+          variant: "destructive",
+        })
+      }
     } catch (err) {
       toast({
         title: "Error",
@@ -148,23 +178,91 @@ export default function Students() {
     }
   }
 
-  const handleDeleteStudent = async (id: string) => {
+  const handleConfirmDelete = (student: Student) => {
+    setStudentToDelete(student)
+    setIsDeleteConfirmationOpen(true)
+  }
+
+  const handleDeleteStudent = async () => {
+    if (!studentToDelete) return
+
     try {
       setLoading(true)
-      await api.deleteStudent(id)
-      setStudents((prev) => prev.filter((student) => student.id !== id))
-      toast({
-        title: "Success",
-        description: "Student deleted successfully",
-      })
+      if (api && typeof api.deleteStudent === "function") {
+        await api.deleteStudent(studentToDelete.id)
+        setStudents((prev) => prev.filter((student) => student.id !== studentToDelete.id))
+        setIsDeleteConfirmationOpen(false)
+        setStudentToDelete(null)
+        toast({
+          title: "Success",
+          description: "Student deleted successfully",
+        })
 
-      if (currentStudents.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1)
+        if (currentStudents.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1)
+        }
+      } else {
+        console.error("mockApi.deleteStudent is not implemented")
+        toast({
+          title: "Error",
+          description: "API method not implemented: deleteStudent",
+          variant: "destructive",
+        })
       }
     } catch (err) {
       toast({
         title: "Error",
         description: "Failed to delete student. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEditStudent = (student: Student) => {
+    setEditingStudent(student)
+    setIsEditStudentOpen(true)
+  }
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target
+    if (editingStudent) {
+      setEditingStudent((prev) => (prev ? { ...prev, [id]: value } : null))
+    }
+  }
+
+  const handleEditSelectChange = (id: string, value: string) => {
+    if (editingStudent) {
+      setEditingStudent((prev) => (prev ? { ...prev, [id]: value } : null))
+    }
+  }
+
+  const handleUpdateStudent = async () => {
+    if (!editingStudent) return
+
+    try {
+      setLoading(true)
+      if (api && typeof api.updateStudent === "function") {
+        const updatedStudent = await api.updateStudent(editingStudent.id, editingStudent)
+        setStudents((prev) => prev.map((student) => (student.id === updatedStudent.id ? updatedStudent : student)))
+        setIsEditStudentOpen(false)
+        toast({
+          title: "Success",
+          description: "Student updated successfully",
+        })
+      } else {
+        console.error("mockApi.updateStudent is not implemented")
+        toast({
+          title: "Error",
+          description: "API method not implemented: updateStudent",
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update student. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -250,25 +348,6 @@ export default function Students() {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Remove this entire div block
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="year" className="text-right">
-                    Year
-                  </Label>
-                  <Select onValueChange={(value) => handleSelectChange("year", value)}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STUDENT_YEARS.map((year) => (
-                        <SelectItem key={year.value} value={year.value}>
-                          {year.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                */}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>
@@ -278,6 +357,109 @@ export default function Students() {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save
                 </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isEditStudentOpen} onOpenChange={setIsEditStudentOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Student</DialogTitle>
+                <DialogDescription>Update the details of the student below.</DialogDescription>
+              </DialogHeader>
+              {editingStudent && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Full Name
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="John Smith"
+                      className="col-span-3"
+                      value={editingStudent.name}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="student@example.com"
+                      className="col-span-3"
+                      value={editingStudent.email}
+                      onChange={handleEditInputChange}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="department" className="text-right">
+                      Department
+                    </Label>
+                    <Select
+                      onValueChange={(value) => handleEditSelectChange("department", value)}
+                      defaultValue={editingStudent.department}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTMENTS.map((dept) => (
+                          <SelectItem key={dept.value} value={dept.value}>
+                            {dept.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditStudentOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateStudent} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Student Details</DialogTitle>
+                <DialogDescription>Detailed information about the selected student.</DialogDescription>
+              </DialogHeader>
+              {selectedStudent && (
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="font-medium">ID:</div>
+                    <div className="col-span-2">{selectedStudent.id}</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="font-medium">Name:</div>
+                    <div className="col-span-2">{selectedStudent.name || "N/A"}</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="font-medium">Email:</div>
+                    <div className="col-span-2">{selectedStudent.email || "N/A"}</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="font-medium">Department:</div>
+                    <div className="col-span-2">{selectedStudent.department || "N/A"}</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="font-medium">Enrollments:</div>
+                    <div className="col-span-2">
+                      {selectedStudent.enrollments ? selectedStudent.enrollments.length : 0} course(s)
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button onClick={() => setIsViewDetailsOpen(false)}>Close</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -292,7 +474,6 @@ export default function Students() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Department</TableHead>
-              {/* Remove <TableHead>Year</TableHead> */}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -319,7 +500,6 @@ export default function Students() {
                   <TableCell>{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
                   <TableCell>{student.department}</TableCell>
-                  {/* Remove <TableCell>{student.year}</TableCell> */}
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -330,10 +510,10 @@ export default function Students() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit student</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(student)}>View details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditStudent(student)}>Edit student</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteStudent(student.id)}>
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleConfirmDelete(student)}>
                           Delete student
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -389,6 +569,50 @@ export default function Students() {
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Separate the delete confirmation dialog from the other dialogs */}
+      <Dialog open={isDeleteConfirmationOpen} onOpenChange={setIsDeleteConfirmationOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this student? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {studentToDelete && (
+            <div className="space-y-4 py-4 border rounded-md p-4 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium text-gray-900 dark:text-gray-100">ID:</div>
+                <div className="col-span-2 text-gray-700 dark:text-gray-300">{studentToDelete.id}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium text-gray-900 dark:text-gray-100">Name:</div>
+                <div className="col-span-2 text-gray-700 dark:text-gray-300">{studentToDelete.name || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium text-gray-900 dark:text-gray-100">Email:</div>
+                <div className="col-span-2 text-gray-700 dark:text-gray-300">{studentToDelete.email || "N/A"}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="font-medium text-gray-900 dark:text-gray-100">Department:</div>
+                <div className="col-span-2 text-gray-700 dark:text-gray-300">{studentToDelete.department || "N/A"}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteConfirmationOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteStudent} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Student
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
