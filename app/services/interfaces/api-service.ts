@@ -38,6 +38,20 @@ export interface ApiService {
   updateLecturer(id: string, lecturerData: any): Promise<any>
   deleteLecturer(id: string): Promise<any>
 
+  // Batches
+  getBatches(): Promise<any[]>
+  getBatchById(id: string): Promise<any>
+  createBatch(batchData: any): Promise<any>
+  updateBatch(id: string, batchData: any): Promise<any>
+  deleteBatch(id: string): Promise<any>
+
+  // Enrollments
+  getEnrollments(): Promise<any[]>
+  getEnrollmentById(id: string): Promise<any>
+  createEnrollment(enrollmentData: any): Promise<any>
+  updateEnrollment(id: string, enrollmentData: any): Promise<any>
+  deleteEnrollment(id: string): Promise<any>
+
   // Facilities
   getFacilities(): Promise<any[]>
   createFacility?(facilityData: any): Promise<any>

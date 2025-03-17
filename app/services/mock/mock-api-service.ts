@@ -41,6 +41,10 @@ import {
   mockTimeSlotPopularityData,
 } from "./data/analytics"
 
+// Add these imports at the top of the file with the other imports:
+import { mockBatches } from "./data/batches"
+import { mockEnrollments } from "./data/enrollments"
+
 // Update the mockSubjects array to reference valid course IDs
 // Assuming mockCourses has entries with IDs like "course-1", "course-2", etc.
 const mockSubjectsOriginal = [
@@ -357,6 +361,160 @@ export class MockApiService implements ApiService {
 
   async deleteLecturer(id: string) {
     console.log(`Mock API: Deleting lecturer with ID: ${id}`)
+    return { success: true }
+  }
+
+  // Batches
+  async getBatches() {
+    console.log("Mock API: Getting batches")
+    try {
+      // Return a copy of the array to avoid mutation issues
+      return [...mockBatches]
+    } catch (error) {
+      console.error("Error retrieving batches:", error)
+      // Return a fallback array if there's an error
+      return [
+        {
+          id: "B001",
+          name: "Batch 2023 Fall",
+          courseId: "course-1",
+          courseName: "Introduction to Computer Science",
+          startDate: "2023-09-01",
+          endDate: "2023-12-15",
+          students: 25,
+          status: "Active",
+        },
+        {
+          id: "B002",
+          name: "Batch 2023 Spring",
+          courseId: "course-2",
+          courseName: "Advanced Programming",
+          startDate: "2023-01-15",
+          endDate: "2023-05-30",
+          students: 18,
+          status: "Completed",
+        },
+      ]
+    }
+  }
+
+  async getBatchById(id: string) {
+    console.log(`Mock API: Getting batch with ID: ${id}`)
+    const batch = mockBatches.find((b) => b.id === id)
+    if (!batch) throw new Error(`Batch with ID ${id} not found`)
+    return batch
+  }
+
+  async createBatch(batchData: any) {
+    console.log("Mock API: Creating batch", batchData)
+    const newBatch = {
+      ...batchData,
+      id: `batch-${Date.now()}`,
+      students: batchData.students || 0,
+      status: batchData.status || "Active",
+    }
+    return newBatch
+  }
+
+  async updateBatch(id: string, batchData: any) {
+    console.log(`Mock API: Updating batch with ID: ${id}`, batchData)
+    const batchIndex = mockBatches.findIndex((b) => b.id === id)
+    if (batchIndex === -1) {
+      throw new Error(`Batch with ID ${id} not found`)
+    }
+
+    // Create an updated batch by merging the existing batch with the new data
+    const updatedBatch = {
+      ...mockBatches[batchIndex],
+      ...batchData,
+    }
+
+    return updatedBatch
+  }
+
+  async deleteBatch(id: string) {
+    console.log(`Mock API: Deleting batch with ID: ${id}`)
+    const batchIndex = mockBatches.findIndex((b) => b.id === id)
+    if (batchIndex === -1) {
+      throw new Error(`Batch with ID ${id} not found`)
+    }
+    return { success: true }
+  }
+
+  // Enrollments
+  async getEnrollments() {
+    console.log("Mock API: Getting enrollments")
+    try {
+      // Return a copy of the array to avoid mutation issues
+      return [...mockEnrollments]
+    } catch (error) {
+      console.error("Error retrieving enrollments:", error)
+      // Return a fallback array if there's an error
+      return [
+        {
+          id: "E001",
+          studentId: "student-1",
+          studentName: "John Doe",
+          courseId: "course-1",
+          courseName: "Introduction to Computer Science",
+          batchId: "B001",
+          batchName: "Batch 2023 Fall",
+          enrollmentDate: "2023-09-01",
+          status: "Active",
+        },
+        {
+          id: "E002",
+          studentId: "student-2",
+          studentName: "Jane Smith",
+          courseId: "course-2",
+          courseName: "Advanced Programming",
+          batchId: "B002",
+          batchName: "Batch 2023 Spring",
+          enrollmentDate: "2023-01-15",
+          status: "Completed",
+        },
+      ]
+    }
+  }
+
+  async getEnrollmentById(id: string) {
+    console.log(`Mock API: Getting enrollment with ID: ${id}`)
+    const enrollment = mockEnrollments.find((e) => e.id === id)
+    if (!enrollment) throw new Error(`Enrollment with ID ${id} not found`)
+    return enrollment
+  }
+
+  async createEnrollment(enrollmentData: any) {
+    console.log("Mock API: Creating enrollment", enrollmentData)
+    const newEnrollment = {
+      ...enrollmentData,
+      id: `enrollment-${Date.now()}`,
+    }
+    return newEnrollment
+  }
+
+  async updateEnrollment(id: string, enrollmentData: any) {
+    console.log(`Mock API: Updating enrollment with ID: ${id}`, enrollmentData)
+    const enrollmentIndex = mockEnrollments.findIndex((e) => e.id === id)
+    if (enrollmentIndex === -1) {
+      throw new Error(`Enrollment with ID ${id} not found`)
+    }
+
+    // Create an updated enrollment by merging the existing enrollment with the new data
+    const updatedEnrollment = {
+      ...mockEnrollments[enrollmentIndex],
+      ...enrollmentData,
+    }
+
+    return updatedEnrollment
+  }
+
+  async deleteEnrollment(id: string) {
+    console.log(`Mock API: Deleting enrollment with ID: ${id}`)
+    const enrollmentIndex = mockEnrollments.findIndex((e) => e.id === id)
+    if (enrollmentIndex === -1) {
+      throw new Error(`Enrollment with ID ${id} not found`)
+    }
     return { success: true }
   }
 

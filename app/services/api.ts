@@ -7,7 +7,7 @@
 import type { User } from "@/app/types"
 import { mockLecturers } from "./mock/data/lecturers"
 import { mockUsers } from "./mock/data/users"
-import { delay } from "./utils/delay"
+import { delay, DEFAULT_DELAY } from "./utils/delay"
 import {
   mockResourceUtilizationData,
   mockEnrollmentTrendsData,
@@ -29,8 +29,8 @@ export const api: ApiService = useRealApi ? realApiService : mockApiService
 // Export both services for direct access if needed
 export { mockApiService, realApiService }
 
-// Simulate API delay
-const simulateDelay = async (ms = 300) => {
+// Simulate API delay with 0ms delay for immediate response
+const simulateDelay = async (ms = DEFAULT_DELAY) => {
   await delay(ms)
 }
 

@@ -1,9 +1,9 @@
 import type { FacilityAvailability, FacilityBooking } from "../types/facility-availability"
 import { mockFacilityAvailability, mockFacilityBookings } from "./mock/data/facility-availability"
-import { delay } from "./utils/delay"
+import { delay, DEFAULT_DELAY } from "./utils/delay"
 
-// Simulate API delay
-const simulateDelay = async (ms = 300) => {
+// Simulate API delay with 0ms delay for immediate response
+const simulateDelay = async (ms = DEFAULT_DELAY) => {
   await delay(ms)
 }
 

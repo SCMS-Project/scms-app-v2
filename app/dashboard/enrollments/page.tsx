@@ -34,13 +34,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { MoreHorizontal, Plus, Search, Filter, Loader2, BookOpen, GraduationCap } from "lucide-react"
+import { MoreHorizontal, Plus, Search, Filter, Loader2, BookOpen, GraduationCap, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/app/services/api"
 import type { Enrollment, Student, Course, Batch } from "../../types"
 import { useToast } from "@/hooks/use-toast"
 // Update imports to include our centralized constants
 import { ENROLLMENT_STATUS_OPTIONS } from "@/app/constants/roles"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function Enrollments() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -51,6 +52,17 @@ export default function Enrollments() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [apiStatus, setApiStatus] = useState<{
+    enrollments: boolean
+    students: boolean
+    courses: boolean
+    batches: boolean
+  }>({
+    enrollments: false,
+    students: false,
+    courses: false,
+    batches: false,
+  })
   const [newEnrollment, setNewEnrollment] = useState<Partial<Enrollment>>({
     studentId: "",
     courseId: "",
@@ -92,231 +104,143 @@ export default function Enrollments() {
     setIsViewDetailsOpen(true)
   }
 
+  // Check API availability
+  useEffect(() => {
+    // Check which API methods are available
+    const checkApiMethods = {
+      enrollments: typeof api.getEnrollments === "function",
+      students: typeof api.getStudents === "function",
+      courses: typeof api.getCourses === "function",
+      batches: typeof api.getBatches === "function",
+    }
+
+    setApiStatus(checkApiMethods)
+
+    // If any required API method is missing, set an error
+    if (!Object.values(checkApiMethods).every(Boolean)) {
+      const missingMethods = Object.entries(checkApiMethods)
+        .filter(([_, available]) => !available)
+        .map(([method]) => method)
+
+      setError(`API not fully implemented. Missing methods: ${missingMethods.join(", ")}`)
+
+      toast({
+        title: "API Configuration Error",
+        description: "The API is not properly configured. Please contact the administrator.",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
   // Fetch enrollments and related data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
 
-        // Check if API methods exist and provide fallbacks if they don't
-        let enrollmentsData = []
-        let studentsData = []
-        let coursesData = []
-        let batchesData = []
+        // Initialize data arrays
+        let enrollmentsData: Enrollment[] = []
+        let studentsData: Student[] = []
+        let coursesData: Course[] = []
+        let batchesData: Batch[] = []
 
-        // Try to fetch enrollments or use fallback
-        if (typeof api.getEnrollments === "function") {
-          try {
-            enrollmentsData = await api.getEnrollments()
-          } catch (err) {
-            console.warn("Error fetching enrollments:", err)
-            // Fallback enrollment data
-            enrollmentsData = [
-              {
-                id: "enr-001",
-                studentId: "student-1",
-                studentName: "John Doe",
-                courseId: "course-1",
-                courseName: "Introduction to Computer Science",
-                batchId: "batch-1",
-                batchName: "CS Batch 2023",
-                enrollmentDate: "2023-09-01",
-                status: "Active",
-              },
-              {
-                id: "enr-002",
-                studentId: "student-2",
-                studentName: "Jane Smith",
-                courseId: "course-2",
-                courseName: "Database Management",
-                batchId: "batch-1",
-                batchName: "CS Batch 2023",
-                enrollmentDate: "2023-09-02",
-                status: "Active",
-              },
-              {
-                id: "enr-003",
-                studentId: "student-3",
-                studentName: "Robert Johnson",
-                courseId: "course-3",
-                courseName: "Web Development",
-                batchId: "batch-2",
-                batchName: "IT Batch 2023",
-                enrollmentDate: "2023-08-15",
-                status: "Completed",
-              },
-            ]
-          }
-        } else {
-          console.warn("api.getEnrollments is not implemented")
-          // Fallback enrollment data
-          enrollmentsData = [
-            {
-              id: "enr-001",
-              studentId: "student-1",
-              studentName: "John Doe",
-              courseId: "course-1",
-              courseName: "Introduction to Computer Science",
-              batchId: "batch-1",
-              batchName: "CS Batch 2023",
-              enrollmentDate: "2023-09-01",
-              status: "Active",
-            },
-            {
-              id: "enr-002",
-              studentId: "student-2",
-              studentName: "Jane Smith",
-              courseId: "course-2",
-              courseName: "Database Management",
-              batchId: "batch-1",
-              batchName: "CS Batch 2023",
-              enrollmentDate: "2023-09-02",
-              status: "Active",
-            },
-            {
-              id: "enr-003",
-              studentId: "student-3",
-              studentName: "Robert Johnson",
-              courseId: "course-3",
-              courseName: "Web Development",
-              batchId: "batch-2",
-              batchName: "IT Batch 2023",
-              enrollmentDate: "2023-08-15",
-              status: "Completed",
-            },
-          ]
+        // Fetch data from available API methods
+        const fetchPromises = []
+
+        if (apiStatus.enrollments) {
+          fetchPromises.push(
+            api
+              .getEnrollments()
+              .then((data) => {
+                enrollmentsData = data
+              })
+              .catch((err) => {
+                console.error("Error fetching enrollments:", err)
+                throw new Error("Failed to fetch enrollments data")
+              }),
+          )
         }
 
-        // Try to fetch students or use fallback
-        if (typeof api.getStudents === "function") {
-          try {
-            studentsData = await api.getStudents()
-          } catch (err) {
-            console.warn("Error fetching students:", err)
-            // Fallback student data
-            studentsData = [
-              { id: "student-1", name: "John Doe", email: "john@example.com" },
-              { id: "student-2", name: "Jane Smith", email: "jane@example.com" },
-              { id: "student-3", name: "Robert Johnson", email: "robert@example.com" },
-              { id: "student-4", name: "Emily Davis", email: "emily@example.com" },
-            ]
-          }
-        } else {
-          console.warn("api.getStudents is not implemented")
-          // Fallback student data
-          studentsData = [
-            { id: "student-1", name: "John Doe", email: "john@example.com" },
-            { id: "student-2", name: "Jane Smith", email: "jane@example.com" },
-            { id: "student-3", name: "Robert Johnson", email: "robert@example.com" },
-            { id: "student-4", name: "Emily Davis", email: "emily@example.com" },
-          ]
+        if (apiStatus.students) {
+          fetchPromises.push(
+            api
+              .getStudents()
+              .then((data) => {
+                studentsData = data
+              })
+              .catch((err) => {
+                console.error("Error fetching students:", err)
+                throw new Error("Failed to fetch students data")
+              }),
+          )
         }
 
-        // Try to fetch courses or use fallback
-        if (typeof api.getCourses === "function") {
-          try {
-            coursesData = await api.getCourses()
-          } catch (err) {
-            console.warn("Error fetching courses:", err)
-            // Fallback course data
-            coursesData = [
-              { id: "course-1", name: "Introduction to Computer Science", code: "CS101" },
-              { id: "course-2", name: "Database Management", code: "CS201" },
-              { id: "course-3", name: "Web Development", code: "CS301" },
-              { id: "course-4", name: "Data Structures", code: "CS202" },
-            ]
-          }
-        } else {
-          console.warn("api.getCourses is not implemented")
-          // Fallback course data
-          coursesData = [
-            { id: "course-1", name: "Introduction to Computer Science", code: "CS101" },
-            { id: "course-2", name: "Database Management", code: "CS201" },
-            { id: "course-3", name: "Web Development", code: "CS301" },
-            { id: "course-4", name: "Data Structures", code: "CS202" },
-          ]
+        if (apiStatus.courses) {
+          fetchPromises.push(
+            api
+              .getCourses()
+              .then((data) => {
+                coursesData = data
+              })
+              .catch((err) => {
+                console.error("Error fetching courses:", err)
+                throw new Error("Failed to fetch courses data")
+              }),
+          )
         }
 
-        // Try to fetch batches or use fallback
-        if (typeof api.getBatches === "function") {
-          try {
-            batchesData = await api.getBatches()
-          } catch (err) {
-            console.warn("Error fetching batches:", err)
-            // Fallback batch data
-            batchesData = [
-              { id: "batch-1", name: "CS Batch 2023", students: 25 },
-              { id: "batch-2", name: "IT Batch 2023", students: 20 },
-              { id: "batch-3", name: "Business Batch 2023", students: 30 },
-            ]
-          }
-        } else {
-          console.warn("api.getBatches is not implemented")
-          // Fallback batch data
-          batchesData = [
-            { id: "batch-1", name: "CS Batch 2023", students: 25 },
-            { id: "batch-2", name: "IT Batch 2023", students: 20 },
-            { id: "batch-3", name: "Business Batch 2023", students: 30 },
-          ]
+        if (apiStatus.batches) {
+          fetchPromises.push(
+            api
+              .getBatches()
+              .then((data) => {
+                batchesData = data
+              })
+              .catch((err) => {
+                console.error("Error fetching batches:", err)
+                throw new Error("Failed to fetch batches data")
+              }),
+          )
         }
 
-        setEnrollments(enrollmentsData)
-        setStudents(studentsData)
-        setCourses(coursesData)
-        setBatches(batchesData)
-        setError(null)
+        // Wait for all available API calls to complete
+        if (fetchPromises.length > 0) {
+          await Promise.all(fetchPromises)
+
+          // Set the data in state
+          if (apiStatus.enrollments) setEnrollments(enrollmentsData)
+          if (apiStatus.students) setStudents(studentsData)
+          if (apiStatus.courses) setCourses(coursesData)
+          if (apiStatus.batches) setBatches(batchesData)
+
+          // If we have some data but not all, update the error message
+          if (!Object.values(apiStatus).every(Boolean)) {
+            setError("Some data could not be retrieved due to missing API methods")
+          } else {
+            setError(null)
+          }
+        }
       } catch (err) {
-        setError("Failed to fetch enrollments data")
-        toast({
-          title: "Warning",
-          description: "Using sample enrollment data. Some features may be limited.",
-          variant: "default",
-        })
+        console.error("Error fetching data:", err)
+        setError(err instanceof Error ? err.message : "Failed to fetch data from the API")
 
-        // Set fallback data even if the main try/catch fails
-        setEnrollments([
-          {
-            id: "enr-001",
-            studentId: "student-1",
-            studentName: "John Doe",
-            courseId: "course-1",
-            courseName: "Introduction to Computer Science",
-            batchId: "batch-1",
-            batchName: "CS Batch 2023",
-            enrollmentDate: "2023-09-01",
-            status: "Active",
-          },
-          {
-            id: "enr-002",
-            studentId: "student-2",
-            courseId: "course-2",
-            studentName: "Jane Smith",
-            courseName: "Database Management",
-            batchId: "batch-1",
-            batchName: "CS Batch 2023",
-            enrollmentDate: "2023-09-02",
-            status: "Active",
-          },
-        ])
-        setStudents([
-          { id: "student-1", name: "John Doe", email: "john@example.com" },
-          { id: "student-2", name: "Jane Smith", email: "jane@example.com" },
-        ])
-        setCourses([
-          { id: "course-1", name: "Introduction to Computer Science", code: "CS101" },
-          { id: "course-2", name: "Database Management", code: "CS201" },
-        ])
-        setBatches([
-          { id: "batch-1", name: "CS Batch 2023", students: 25 },
-          { id: "batch-2", name: "IT Batch 2023", students: 20 },
-        ])
+        toast({
+          title: "Error",
+          description: "Failed to fetch data from the API. Please try again later.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, [toast])
+    // Only attempt to fetch if at least one API method is available
+    if (Object.values(apiStatus).some(Boolean)) {
+      fetchData()
+    } else {
+      setLoading(false)
+    }
+  }, [apiStatus, toast])
 
   // Reset search queries when dialog closes
   useEffect(() => {
@@ -329,9 +253,9 @@ export default function Enrollments() {
   // Filter enrollments based on search query
   const filteredEnrollments = enrollments.filter(
     (enrollment) =>
-      enrollment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      enrollment.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      enrollment.batchName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      enrollment.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      enrollment.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      enrollment.batchName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       enrollment.id.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
@@ -394,62 +318,26 @@ export default function Enrollments() {
 
       setLoading(true)
 
-      // Create the enrollment
-      let createdEnrollment
-      if (typeof api.createEnrollment === "function") {
-        try {
-          createdEnrollment = await api.createEnrollment(newEnrollment as Omit<Enrollment, "id">)
-        } catch (err) {
-          console.warn("Error creating enrollment:", err)
-          // Create a mock enrollment if API fails
-          createdEnrollment = {
-            ...newEnrollment,
-            id: `enr-${Date.now()}`,
-            studentName: students.find((s) => s.id === newEnrollment.studentId)?.name || "",
-            courseName: courses.find((c) => c.id === newEnrollment.courseId)?.name || "",
-            batchName: batches.find((b) => b.id === newEnrollment.batchId)?.name || "",
-          }
-        }
-      } else {
-        console.warn("api.createEnrollment is not implemented")
-        // Create a mock enrollment if API doesn't exist
-        createdEnrollment = {
-          ...newEnrollment,
-          id: `enr-${Date.now()}`,
-          studentName: students.find((s) => s.id === newEnrollment.studentId)?.name || "",
-          courseName: courses.find((c) => c.id === newEnrollment.courseId)?.name || "",
-          batchName: batches.find((b) => b.id === newEnrollment.batchId)?.name || "",
-        }
+      // Check if the API method exists
+      if (!apiStatus.enrollments || typeof api.createEnrollment !== "function") {
+        toast({
+          title: "API Error",
+          description: "The enrollment creation API is not available.",
+          variant: "destructive",
+        })
+        return
       }
 
+      // Create the enrollment using the API
+      const createdEnrollment = await api.createEnrollment(newEnrollment as Omit<Enrollment, "id">)
       setEnrollments((prev) => [...prev, createdEnrollment])
 
-      // Update the batch student count
+      // Update the batch student count if the API is available
       const selectedBatch = batches.find((b) => b.id === newEnrollment.batchId)
-      if (selectedBatch) {
-        // Update the batch with one more student
-        let updatedBatch
-        if (typeof api.updateBatch === "function") {
-          try {
-            updatedBatch = await api.updateBatch(selectedBatch.id, {
-              students: selectedBatch.students + 1,
-            })
-          } catch (err) {
-            console.warn("Error updating batch:", err)
-            // Create a mock updated batch if API fails
-            updatedBatch = {
-              ...selectedBatch,
-              students: selectedBatch.students + 1,
-            }
-          }
-        } else {
-          console.warn("api.updateBatch is not implemented")
-          // Create a mock updated batch if API doesn't exist
-          updatedBatch = {
-            ...selectedBatch,
-            students: selectedBatch.students + 1,
-          }
-        }
+      if (selectedBatch && apiStatus.batches && typeof api.updateBatch === "function") {
+        const updatedBatch = await api.updateBatch(selectedBatch.id, {
+          students: selectedBatch.students + 1,
+        })
 
         // Update the batches state
         setBatches((prev) => prev.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)))
@@ -468,13 +356,14 @@ export default function Enrollments() {
 
       toast({
         title: "Success",
-        description: "Enrollment added successfully and student assigned to batch",
+        description: "Enrollment added successfully",
       })
     } catch (err) {
+      console.error("Error creating enrollment:", err)
       toast({
-        title: "Warning",
-        description: "Using local data mode. Changes won't be saved to the server.",
-        variant: "default",
+        title: "Error",
+        description: "Failed to create enrollment. Please try again later.",
+        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -486,56 +375,37 @@ export default function Enrollments() {
     try {
       setLoading(true)
 
-      // Get the enrollment before deleting it
-      const enrollmentToDelete = enrollments.find((e) => e.id === id)
-
-      // Delete the enrollment
-      if (typeof api.deleteEnrollment === "function") {
-        try {
-          await api.deleteEnrollment(id)
-        } catch (err) {
-          console.warn("Error deleting enrollment:", err)
-          // We'll continue with the local deletion even if the API fails
-        }
-      } else {
-        console.warn("api.deleteEnrollment is not implemented")
-        // We'll continue with the local deletion
+      // Check if the API method exists
+      if (!apiStatus.enrollments || typeof api.deleteEnrollment !== "function") {
+        toast({
+          title: "API Error",
+          description: "The enrollment deletion API is not available.",
+          variant: "destructive",
+        })
+        return
       }
 
-      // Update local state regardless of API success
+      // Get the enrollment before deleting it
+      const enrollmentToDelete = enrollments.find((e) => e.id === id)
+      if (!enrollmentToDelete) {
+        throw new Error(`Enrollment with ID ${id} not found`)
+      }
+
+      // Delete the enrollment using the API
+      await api.deleteEnrollment(id)
+
+      // Update local state after successful API call
       setEnrollments((prev) => prev.filter((enrollment) => enrollment.id !== id))
 
-      // If we found the enrollment, update the batch student count
-      if (enrollmentToDelete) {
-        const batchToUpdate = batches.find((b) => b.id === enrollmentToDelete.batchId)
-        if (batchToUpdate && batchToUpdate.students > 0) {
-          // Update the batch with one less student
-          let updatedBatch
-          if (typeof api.updateBatch === "function") {
-            try {
-              updatedBatch = await api.updateBatch(batchToUpdate.id, {
-                students: batchToUpdate.students - 1,
-              })
-            } catch (err) {
-              console.warn("Error updating batch:", err)
-              // Create a mock updated batch if API fails
-              updatedBatch = {
-                ...batchToUpdate,
-                students: batchToUpdate.students - 1,
-              }
-            }
-          } else {
-            console.warn("api.updateBatch is not implemented")
-            // Create a mock updated batch if API doesn't exist
-            updatedBatch = {
-              ...batchToUpdate,
-              students: batchToUpdate.students - 1,
-            }
-          }
+      // Update the batch student count if the API is available
+      const batchToUpdate = batches.find((b) => b.id === enrollmentToDelete.batchId)
+      if (batchToUpdate && batchToUpdate.students > 0 && apiStatus.batches && typeof api.updateBatch === "function") {
+        const updatedBatch = await api.updateBatch(batchToUpdate.id, {
+          students: batchToUpdate.students - 1,
+        })
 
-          // Update the batches state
-          setBatches((prev) => prev.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)))
-        }
+        // Update the batches state
+        setBatches((prev) => prev.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)))
       }
 
       toast({
@@ -543,14 +413,12 @@ export default function Enrollments() {
         description: "Enrollment deleted successfully",
       })
     } catch (err) {
+      console.error("Error deleting enrollment:", err)
       toast({
-        title: "Warning",
-        description: "Using local data mode. Changes won't be saved to the server.",
-        variant: "default",
+        title: "Error",
+        description: "Failed to delete enrollment. Please try again later.",
+        variant: "destructive",
       })
-
-      // Still update the local state even if there's an error
-      setEnrollments((prev) => prev.filter((enrollment) => enrollment.id !== id))
     } finally {
       setLoading(false)
     }
@@ -643,6 +511,22 @@ export default function Enrollments() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>API Error</AlertTitle>
+          <AlertDescription>
+            {error}
+            {!Object.values(apiStatus).some(Boolean) && (
+              <div className="mt-2">
+                <p>Please ensure the API service is properly configured and running.</p>
+                <p className="text-xs mt-1">Contact your administrator for assistance.</p>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold">Enrollment Management</h2>
         <div className="flex flex-wrap gap-2">
@@ -661,7 +545,7 @@ export default function Enrollments() {
           </Button>
           <Dialog open={isAddEnrollmentOpen} onOpenChange={setIsAddEnrollmentOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-1">
+              <Button className="gap-1" disabled={!apiStatus.enrollments || typeof api.createEnrollment !== "function"}>
                 <Plus className="h-4 w-4" /> Add Enrollment
               </Button>
             </DialogTrigger>
@@ -902,7 +786,7 @@ export default function Enrollments() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && enrollments.length === 0 ? (
+            {loading ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex justify-center items-center">
@@ -911,7 +795,7 @@ export default function Enrollments() {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : error ? (
+            ) : error && !enrollments.length ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-red-500">
                   {error}
@@ -949,11 +833,12 @@ export default function Enrollments() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleViewDetails(enrollment)}>View details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit enrollment</DropdownMenuItem>
+                        <DropdownMenuItem disabled={!apiStatus.enrollments}>Edit enrollment</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600"
                           onClick={() => handleDeleteEnrollment(enrollment.id)}
+                          disabled={!apiStatus.enrollments || typeof api.deleteEnrollment !== "function"}
                         >
                           Delete enrollment
                         </DropdownMenuItem>

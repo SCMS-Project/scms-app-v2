@@ -168,6 +168,64 @@ export class RealApiService implements ApiService {
     })
   }
 
+  // Batches
+  async getBatches() {
+    return this.fetchApi("batches")
+  }
+
+  async getBatchById(id: string) {
+    return this.fetchApi(`batches/${id}`)
+  }
+
+  async createBatch(batchData: any) {
+    return this.fetchApi("batches", {
+      method: "POST",
+      body: JSON.stringify(batchData),
+    })
+  }
+
+  async updateBatch(id: string, batchData: any) {
+    return this.fetchApi(`batches/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(batchData),
+    })
+  }
+
+  async deleteBatch(id: string) {
+    return this.fetchApi(`batches/${id}`, {
+      method: "DELETE",
+    })
+  }
+
+  // Enrollments
+  async getEnrollments() {
+    return this.fetchApi("enrollments")
+  }
+
+  async getEnrollmentById(id: string) {
+    return this.fetchApi(`enrollments/${id}`)
+  }
+
+  async createEnrollment(enrollmentData: any) {
+    return this.fetchApi("enrollments", {
+      method: "POST",
+      body: JSON.stringify(enrollmentData),
+    })
+  }
+
+  async updateEnrollment(id: string, enrollmentData: any) {
+    return this.fetchApi(`enrollments/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(enrollmentData),
+    })
+  }
+
+  async deleteEnrollment(id: string) {
+    return this.fetchApi(`enrollments/${id}`, {
+      method: "DELETE",
+    })
+  }
+
   // Facilities
   async getFacilities() {
     return this.fetchApi("facilities")
