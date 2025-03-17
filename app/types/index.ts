@@ -62,7 +62,6 @@ export interface Facility {
   name: string
   type: string
   capacity: number
-  rooms: number
   status: string
 }
 
@@ -70,7 +69,7 @@ export interface Facility {
 export interface Reservation {
   id: string
   facility: string
-  room: string
+  room?: string // Make room optional
   purpose: string
   date: string
   time: string

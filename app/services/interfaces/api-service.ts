@@ -40,6 +40,11 @@ export interface ApiService {
 
   // Facilities
   getFacilities(): Promise<any[]>
+  createFacility(facilityData: any): Promise<any>
+  updateFacility?(id: string, facilityData: any): Promise<any>
+  deleteFacility?(id: string): Promise<any>
+
+  // Reservations
   getReservations(): Promise<any[]>
   createReservation(reservationData: any): Promise<any>
 

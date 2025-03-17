@@ -173,6 +173,26 @@ export class RealApiService implements ApiService {
     return this.fetchApi("facilities")
   }
 
+  async createFacility(facilityData: any) {
+    return this.fetchApi("facilities", {
+      method: "POST",
+      body: JSON.stringify(facilityData),
+    })
+  }
+
+  async updateFacility(id: string, facilityData: any) {
+    return this.fetchApi(`facilities/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(facilityData),
+    })
+  }
+
+  async deleteFacility(id: string) {
+    return this.fetchApi(`facilities/${id}`, {
+      method: "DELETE",
+    })
+  }
+
   // Events
   async getEvents() {
     return this.fetchApi("events")

@@ -8,7 +8,6 @@ export const mockFacilities: Facility[] = [
     name: "Main Auditorium",
     type: "Auditorium",
     capacity: 1200,
-    rooms: 1,
     status: "Operational",
   },
   {
@@ -17,7 +16,6 @@ export const mockFacilities: Facility[] = [
     name: "Conference Hall A",
     type: "Conference Hall",
     capacity: 300,
-    rooms: 1,
     status: "Operational",
   },
   {
@@ -26,7 +24,6 @@ export const mockFacilities: Facility[] = [
     name: "Gymnasium",
     type: "Sports Facility",
     capacity: 500,
-    rooms: 3,
     status: "Operational",
   },
   {
@@ -35,7 +32,6 @@ export const mockFacilities: Facility[] = [
     name: "Library",
     type: "Study Area",
     capacity: 600,
-    rooms: 10,
     status: "Operational",
   },
 ]

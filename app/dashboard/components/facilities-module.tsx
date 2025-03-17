@@ -48,7 +48,7 @@ export default function FacilitiesModule() {
         <h3 className="text-lg font-medium">Online Reservation System</h3>
         <p className="text-muted-foreground">Our new online reservation system allows users to:</p>
         <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-          <li>Reserve equipment, classrooms, and other facilities online</li>
+          <li>Reserve equipment and facilities online</li>
           <li>Check real-time availability of resources</li>
           <li>Avoid scheduling conflicts with automatic conflict detection</li>
           <li>Track and manage your reservations in one place</li>
@@ -85,10 +85,6 @@ export default function FacilitiesModule() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="font-medium">Capacity:</div>
                 <div className="col-span-2">{selectedFacility.capacity || "N/A"}</div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="font-medium">Rooms:</div>
-                <div className="col-span-2">{selectedFacility.rooms || 0}</div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="font-medium">Status:</div>

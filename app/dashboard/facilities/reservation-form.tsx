@@ -26,9 +26,6 @@ const formSchema = z.object({
   facilityId: z.string({
     required_error: "Please select a facility",
   }),
-  room: z.string({
-    required_error: "Please select a room",
-  }),
   purpose: z.string().min(5, {
     message: "Purpose must be at least 5 characters",
   }),
@@ -58,7 +55,6 @@ interface ReservationFormProps {
 
 export function ReservationForm({ onSuccess, onCancel, existingReservations }: ReservationFormProps) {
   const [facilities, setFacilities] = useState<Facility[]>([])
-  const [rooms, setRooms] = useState<{ id: string; name: string; capacity: number }[]>([])
   const [loading, setLoading] = useState(false)
   const [checkingAvailability, setCheckingAvailability] = useState(false)
   const [availabilityStatus, setAvailabilityStatus] = useState<"available" | "unavailable" | "unknown">("unknown")
@@ -79,7 +75,7 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
   })
 
   // Watch form values for availability checking
-  const watchedValues = form.watch(["facilityId", "room", "date", "startTime", "endTime"])
+  const watchedValues = form.watch(["facilityId", "date", "startTime", "endTime"])
 
   // Fetch facilities on component mount
   useEffect(() => {
@@ -102,7 +98,7 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
     fetchFacilities()
   }, [toast])
 
-  // Update rooms when facility changes
+  // Update facility details when facility changes
   useEffect(() => {
     const facilityId = form.getValues("facilityId")
     if (!facilityId) return
@@ -110,25 +106,15 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
     const facility = facilities.find((f) => f.id === facilityId)
     if (facility) {
       setSelectedFacility(facility)
-
-      // Generate mock rooms based on the facility
-      // In a real app, this would come from an API call
-      const mockRooms = Array.from({ length: facility.rooms }, (_, i) => ({
-        id: `${facility.id}-R${i + 1}`,
-        name: `Room ${i + 1}`,
-        capacity: Math.floor(facility.capacity / facility.rooms),
-      }))
-
-      setRooms(mockRooms)
     }
   }, [form.getValues("facilityId"), facilities])
 
   // Check availability when relevant form values change
   useEffect(() => {
-    const [facilityId, room, date, startTime, endTime] = watchedValues
+    const [facilityId, date, startTime, endTime] = watchedValues
 
-    if (facilityId && room && date && startTime && endTime) {
-      checkAvailability(facilityId, room, date, startTime, endTime)
+    if (facilityId && date && startTime && endTime) {
+      checkAvailability(facilityId, date, startTime, endTime)
     } else {
       setAvailabilityStatus("unknown")
       setAvailabilityMessage("")
@@ -136,13 +122,7 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
   }, [watchedValues])
 
   // Function to check if the requested time slot is available
-  const checkAvailability = async (
-    facilityId: string,
-    room: string,
-    date: Date,
-    startTime: string,
-    endTime: string,
-  ) => {
+  const checkAvailability = async (facilityId: string, date: Date, startTime: string, endTime: string) => {
     setCheckingAvailability(true)
 
     try {
@@ -153,7 +133,6 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
       const conflicts = existingReservations.filter((reservation) => {
         return (
           reservation.facility === facilities.find((f) => f.id === facilityId)?.name &&
-          reservation.room === room &&
           reservation.date === formattedDate &&
           // Check if the requested time overlaps with an existing reservation
           ((startTime >= reservation.time.split(" - ")[0] && startTime < reservation.time.split(" - ")[1]) ||
@@ -164,7 +143,7 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
 
       if (conflicts.length > 0) {
         setAvailabilityStatus("unavailable")
-        setAvailabilityMessage("This time slot is already booked. Please select a different time or room.")
+        setAvailabilityMessage("This time slot is already booked. Please select a different time or facility.")
       } else {
         setAvailabilityStatus("available")
         setAvailabilityMessage("This time slot is available!")
@@ -185,7 +164,7 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
     if (availabilityStatus === "unavailable") {
       toast({
         title: "Error",
-        description: "Cannot reserve an unavailable time slot. Please select a different time or room.",
+        description: "Cannot reserve an unavailable time slot. Please select a different time or facility.",
         variant: "destructive",
       })
       return
@@ -202,7 +181,7 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
       // Create the reservation
       await api.createReservation({
         facility: facilityName,
-        room: data.room,
+        room: "N/A", // Set room to N/A since we're not using rooms anymore
         purpose: data.purpose,
         date: formattedDate,
         time: timeSlot,
@@ -277,36 +256,6 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
                   </SelectContent>
                 </Select>
                 <FormDescription>Select the building or facility you want to reserve</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="room"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Room</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={!form.getValues("facilityId") || loading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a room" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {rooms.map((room) => (
-                      <SelectItem key={room.id} value={room.name}>
-                        {room.name} (Capacity: {room.capacity})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>Select the specific room you want to reserve</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
