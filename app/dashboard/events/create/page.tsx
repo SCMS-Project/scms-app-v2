@@ -89,23 +89,30 @@ export default function CreateEventPage() {
     facilityId: "",
     startDate: "",
     startTime: "",
+    endDate: "",
     endTime: "",
     status: "Upcoming",
     attendees: 0,
     isPublic: true,
     resources: [] as string[],
+    category: "",
+    contactEmail: "",
+    contactPhone: "",
+    requiresRegistration: false,
+    additionalNotes: "",
   })
 
   // Change this line
   const [resources, setResources] = useState<Array<{ id: string; name: string }>>([])
   const [isLoadingResources, setIsLoadingResources] = useState(false)
+  const [attendeesError, setAttendeesError] = useState<string | null>(null)
 
   const [resourceAvailability, setResourceAvailability] = useState<
     Record<string, { available: boolean; message?: string }>
   >({})
   const [resourceSearchTerm, setResourceSearchTerm] = useState("")
   const [openResourcePopover, setOpenResourcePopover] = useState(false)
-  const [selectedResource, setSelectedResource] = useState<any>(null)
+  const [selectedResources, setSelectedResources] = useState<any[]>([])
 
   const [facilities, setFacilities] = useState<any[]>([])
   const [isLoadingFacilities, setIsLoadingFacilities] = useState(false)
@@ -351,6 +358,18 @@ export default function CreateEventPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+
+    if (name === "attendees" && selectedFacility && selectedFacility.capacity) {
+      const attendeesCount = Number.parseInt(value || "0", 10)
+      const facilityCapacity = Number.parseInt(selectedFacility.capacity, 10)
+
+      if (attendeesCount > facilityCapacity) {
+        setAttendeesError(`Exceeds facility capacity of ${facilityCapacity}`)
+      } else {
+        setAttendeesError(null)
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -363,12 +382,26 @@ export default function CreateEventPage() {
   }
 
   const handleResourceSelect = (resource: any) => {
-    setSelectedResource(resource)
-    setFormData((prev) => ({
-      ...prev,
-      resources: [resource.id],
-    }))
-    setOpenResourcePopover(false)
+    // Check if resource is already selected
+    const isSelected = selectedResources.some((r) => r.id === resource.id)
+
+    if (isSelected) {
+      // Remove resource if already selected
+      const updatedResources = selectedResources.filter((r) => r.id !== resource.id)
+      setSelectedResources(updatedResources)
+      setFormData((prev) => ({
+        ...prev,
+        resources: updatedResources.map((r) => r.id),
+      }))
+    } else {
+      // Add resource if not already selected
+      const updatedResources = [...selectedResources, resource]
+      setSelectedResources(updatedResources)
+      setFormData((prev) => ({
+        ...prev,
+        resources: updatedResources.map((r) => r.id),
+      }))
+    }
   }
 
   const handleFacilitySelect = (facility: any) => {
@@ -378,6 +411,17 @@ export default function CreateEventPage() {
       facilityId: facility.id,
       location: `${facility.name} - ${facility.type || "General"}`,
     }))
+
+    // Check if attendees exceed the new facility's capacity
+    if (
+      facility.capacity &&
+      Number.parseInt(formData.attendees.toString(), 10) > Number.parseInt(facility.capacity, 10)
+    ) {
+      setAttendeesError(`Exceeds facility capacity of ${facility.capacity}`)
+    } else {
+      setAttendeesError(null)
+    }
+
     setOpenFacilityPopover(false)
   }
 
@@ -385,10 +429,27 @@ export default function CreateEventPage() {
     e.preventDefault()
 
     // Validate form
-    if (!formData.title || !formData.type || !formData.startDate || !formData.startTime || !formData.facilityId) {
+    if (
+      !formData.title ||
+      !formData.type ||
+      !formData.startDate ||
+      !formData.startTime ||
+      !formData.facilityId ||
+      !formData.organizer
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if attendees exceed facility capacity
+    if (attendeesError) {
+      toast({
+        title: "Validation Error",
+        description: "The number of attendees exceeds the facility capacity.",
         variant: "destructive",
       })
       return
@@ -405,11 +466,15 @@ export default function CreateEventPage() {
     setIsSubmitting(true)
 
     try {
-      // Create event using API
-      const result = await api.createEvent({
+      // Ensure endDate is set if not provided
+      const eventData = {
         ...formData,
+        endDate: formData.endDate || formData.startDate,
         id: `event-${Date.now()}`, // This will be overwritten by the server
-      })
+      }
+
+      // Create event using API
+      const result = await api.createEvent(eventData)
 
       toast({
         title: "Success",
@@ -512,6 +577,15 @@ export default function CreateEventPage() {
         <ArrowLeft className="h-4 w-4" /> Back to Events
       </Button>
 
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Create New Event</h1>
+        <p className="text-muted-foreground">
+          Events are scheduled activities that take place at specific times and locations on campus. They can be
+          academic sessions, workshops, seminars, social gatherings, or any organized activity that requires facility
+          booking and resource allocation. Create a new event by filling out the form below.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Create New Event</CardTitle>
@@ -567,8 +641,8 @@ export default function CreateEventPage() {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="relative md:col-span-2">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </div>
@@ -582,7 +656,7 @@ export default function CreateEventPage() {
                     value={formData.startDate}
                     onChange={(e) => {
                       const value = e.target.value
-                      setFormData((prev) => ({ ...prev, startDate: value }))
+                      setFormData((prev) => ({ ...prev, startDate: value, endDate: value })) // Set end date same as start date by default
                       // Delay checking availability to avoid UI freezes
                       setTimeout(() => checkAvailability(value, formData.startTime, formData.endTime), 100)
                     }}
@@ -833,40 +907,20 @@ export default function CreateEventPage() {
                       role="combobox"
                       aria-expanded={openResourcePopover}
                       className="w-full justify-between"
-                      aria-label="Select a resource - shows availability status and allows searching"
+                      aria-label="Select resources - shows availability status and allows searching"
                     >
-                      {selectedResource ? (
+                      {selectedResources.length > 0 ? (
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center">
-                            <span>{selectedResource.name}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">(ID: {selectedResource.id})</span>
+                            <span>
+                              {selectedResources.length} resource{selectedResources.length !== 1 ? "s" : ""} selected
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {formData.startDate && formData.startTime && resourceAvailability[selectedResource.id] && (
-                              <Badge
-                                variant={
-                                  resourceAvailability[selectedResource.id].available ? "outline" : "destructive"
-                                }
-                              >
-                                {resourceAvailability[selectedResource.id].available ? (
-                                  <div className="flex items-center text-green-600 dark:text-green-400">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Available
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center text-red-600 dark:text-red-400">
-                                    <XCircle className="h-3 w-3 mr-1" />
-                                    Booked
-                                  </div>
-                                )}
-                              </Badge>
-                            )}
-                            <ChevronDown className="h-4 w-4 opacity-50" />
-                          </div>
+                          <ChevronDown className="h-4 w-4 opacity-50" />
                         </div>
                       ) : (
                         <div className="flex items-center justify-between w-full">
-                          <span>Select resource</span>
+                          <span>Select resources</span>
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         </div>
                       )}
@@ -920,6 +974,7 @@ export default function CreateEventPage() {
                               const availability = resourceAvailability[resource.id]
                               const isAvailable =
                                 !formData.startDate || !formData.startTime || !availability || availability.available
+                              const isSelected = selectedResources.some((r) => r.id === resource.id)
 
                               return (
                                 <CommandItem
@@ -930,6 +985,13 @@ export default function CreateEventPage() {
                                 >
                                   <div className="flex items-center justify-between w-full">
                                     <div className="flex items-center">
+                                      <div className="mr-2">
+                                        {isSelected ? (
+                                          <CheckCircle className="h-4 w-4 text-primary" />
+                                        ) : (
+                                          <div className="h-4 w-4 rounded-full border border-muted-foreground" />
+                                        )}
+                                      </div>
                                       <span className="font-medium">{resource.name}</span>
                                       <span className="ml-2 text-xs text-muted-foreground">(ID: {resource.id})</span>
                                     </div>
@@ -962,152 +1024,164 @@ export default function CreateEventPage() {
                 </Popover>
 
                 <div className="text-xs text-muted-foreground mt-1 mb-2">
-                  Displays resources with availability status, search, and conflict detection
+                  Select multiple resources for your event. Click on a resource to select/deselect it.
                 </div>
               </div>
             </div>
 
-            {/* Selected Facility Card */}
-            {selectedFacility && (
-              <div
-                className={`mt-4 p-4 border rounded-md shadow-sm ${
-                  formData.startDate &&
-                  formData.startTime &&
-                  facilityAvailability[selectedFacility.id] &&
-                  !facilityAvailability[selectedFacility.id].available
-                    ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
-                    : "bg-muted/30"
-                }`}
-              >
-                <h4 className="text-sm font-medium mb-2">Selected Facility</h4>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{selectedFacility.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {formData.startDate && formData.startTime && facilityAvailability[selectedFacility.id] && (
-                      <Badge
-                        variant={facilityAvailability[selectedFacility.id].available ? "outline" : "destructive"}
-                        className="ml-auto"
-                      >
-                        {facilityAvailability[selectedFacility.id].available ? (
-                          <div className="flex items-center">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Available on {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Booked on {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                          </div>
+            {/* Selected Facility and Resources in one line */}
+            {(selectedFacility || selectedResources.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Selected Facility Card */}
+                {selectedFacility && (
+                  <div
+                    className={`p-4 border rounded-md shadow-sm ${
+                      formData.startDate &&
+                      formData.startTime &&
+                      facilityAvailability[selectedFacility.id] &&
+                      !facilityAvailability[selectedFacility.id].available
+                        ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                        : "bg-muted/30"
+                    }`}
+                  >
+                    <h4 className="text-sm font-medium mb-2">Selected Facility</h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{selectedFacility.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {formData.startDate && formData.startTime && facilityAvailability[selectedFacility.id] && (
+                          <Badge
+                            variant={facilityAvailability[selectedFacility.id].available ? "outline" : "destructive"}
+                            className="ml-auto"
+                          >
+                            {facilityAvailability[selectedFacility.id].available ? (
+                              <div className="flex items-center">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Available on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                                {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Booked on {new Date(formData.startDate).toLocaleDateString()} from{" "}
+                                {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
+                              </div>
+                            )}
+                          </Badge>
                         )}
-                      </Badge>
+                        {selectedFacility.type && <Badge variant="outline">{selectedFacility.type}</Badge>}
+                      </div>
+                    </div>
+                    {selectedFacility.description && (
+                      <p className="mt-1 text-sm text-muted-foreground border-t pt-2">{selectedFacility.description}</p>
                     )}
-                    {selectedFacility.type && <Badge variant="outline">{selectedFacility.type}</Badge>}
+                    <div className="flex flex-wrap items-center mt-2 text-xs text-muted-foreground gap-3">
+                      {selectedFacility.location && (
+                        <span className="flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {selectedFacility.location}
+                        </span>
+                      )}
+                      {selectedFacility.capacity && (
+                        <span className="flex items-center">
+                          <Users className="h-3 w-3 mr-1" />
+                          <span>Capacity: {selectedFacility.capacity}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {formData.startDate &&
+                      formData.startTime &&
+                      facilityAvailability[selectedFacility.id] &&
+                      !facilityAvailability[selectedFacility.id].available && (
+                        <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
+                          <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          <span>
+                            This facility is already booked during the selected time. Scheduling this event may cause a
+                            conflict.
+                          </span>
+                        </div>
+                      )}
                   </div>
-                </div>
-                {selectedFacility.description && (
-                  <p className="mt-1 text-sm text-muted-foreground border-t pt-2">{selectedFacility.description}</p>
                 )}
-                <div className="flex flex-wrap items-center mt-2 text-xs text-muted-foreground gap-3">
-                  {selectedFacility.location && (
-                    <span className="flex items-center">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {selectedFacility.location}
-                    </span>
-                  )}
-                  {selectedFacility.capacity && (
-                    <span className="flex items-center">
-                      <Users className="h-3 w-3 mr-1" />
-                      <span>Capacity: {selectedFacility.capacity}</span>
-                    </span>
-                  )}
-                </div>
 
-                {formData.startDate &&
-                  formData.startTime &&
-                  facilityAvailability[selectedFacility.id] &&
-                  !facilityAvailability[selectedFacility.id].available && (
-                    <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
-                      <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        This facility is already booked during the selected time. Scheduling this event may cause a
-                        conflict.
-                      </span>
+                {/* Selected Resources Card */}
+                {selectedResources.length > 0 && (
+                  <div className="p-4 border rounded-md shadow-sm bg-muted/30">
+                    <h4 className="text-sm font-medium mb-2">Selected Resources ({selectedResources.length})</h4>
+                    <div className="space-y-2">
+                      {selectedResources.map((resource) => {
+                        const isAvailable =
+                          !formData.startDate ||
+                          !formData.startTime ||
+                          !resourceAvailability[resource.id] ||
+                          resourceAvailability[resource.id].available
+
+                        return (
+                          <div
+                            key={resource.id}
+                            className={`p-2 rounded-md flex items-center justify-between ${
+                              !isAvailable ? "bg-red-50 dark:bg-red-950" : "bg-background"
+                            }`}
+                          >
+                            <div className="flex items-center">
+                              <span className="font-medium">{resource.name}</span>
+                              <span className="ml-2 text-xs text-muted-foreground">(ID: {resource.id})</span>
+                            </div>
+                            {formData.startDate && formData.startTime && resourceAvailability[resource.id] && (
+                              <Badge variant={isAvailable ? "outline" : "destructive"}>
+                                {isAvailable ? (
+                                  <div className="flex items-center text-green-600 dark:text-green-400">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Available
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center text-red-600 dark:text-red-400">
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Booked
+                                  </div>
+                                )}
+                              </Badge>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
-                  )}
-              </div>
-            )}
 
-            {/* Selected Resource Card */}
-            {selectedResource && (
-              <div
-                className={`mt-4 p-4 border rounded-md shadow-sm ${
-                  formData.startDate &&
-                  formData.startTime &&
-                  resourceAvailability[selectedResource.id] &&
-                  !resourceAvailability[selectedResource.id].available
-                    ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
-                    : "bg-muted/30"
-                }`}
-              >
-                <h4 className="text-sm font-medium mb-2">Selected Resource</h4>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <span className="font-medium">{selectedResource.name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">(ID: {selectedResource.id})</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {formData.startDate && formData.startTime && resourceAvailability[selectedResource.id] && (
-                      <Badge
-                        variant={resourceAvailability[selectedResource.id].available ? "outline" : "destructive"}
-                        className="ml-auto"
-                      >
-                        {resourceAvailability[selectedResource.id].available ? (
-                          <div className="flex items-center">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Available on {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Booked on {new Date(formData.startDate).toLocaleDateString()} from{" "}
-                            {formatTimeForDisplay(formData.startTime)} to {formatTimeForDisplay(formData.endTime)}
-                          </div>
-                        )}
-                      </Badge>
+                    {selectedResources.some(
+                      (resource) =>
+                        formData.startDate &&
+                        formData.startTime &&
+                        resourceAvailability[resource.id] &&
+                        !resourceAvailability[resource.id].available,
+                    ) && (
+                      <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
+                        <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          One or more resources are already booked during the selected time. Scheduling this event may
+                          cause a conflict.
+                        </span>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {formData.startDate &&
-                  formData.startTime &&
-                  resourceAvailability[selectedResource.id] &&
-                  !resourceAvailability[selectedResource.id].available && (
-                    <div className="mt-3 p-3 bg-red-100 dark:bg-red-900 rounded text-sm flex items-start">
-                      <AlertTriangle className="h-4 w-4 mr-2 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        This resource is already booked during the selected time. Scheduling this event may cause a
-                        conflict.
-                      </span>
-                    </div>
-                  )}
+                )}
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="organizer">Organizer</Label>
+                <Label htmlFor="organizer">
+                  Organizer <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="organizer"
                   name="organizer"
                   placeholder="Enter organizer name"
                   value={formData.organizer}
                   onChange={handleInputChange}
+                  required
                 />
               </div>
 
@@ -1129,23 +1203,43 @@ export default function CreateEventPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="attendees">Expected Attendees</Label>
+                <div className="relative">
+                  <Input
+                    id="attendees"
+                    name="attendees"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={formData.attendees.toString()}
+                    onChange={(e) =>
+                      handleInputChange({
+                        ...e,
+                        target: {
+                          ...e.target,
+                          name: "attendees",
+                          value: e.target.value ? Number.parseInt(e.target.value, 10).toString() : "0",
+                        },
+                      })
+                    }
+                    className={attendeesError ? "border-red-500 pr-12" : ""}
+                  />
+                  {selectedFacility && selectedFacility.capacity && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
+                      Max: {selectedFacility.capacity}
+                    </div>
+                  )}
+                </div>
+                {attendeesError && <p className="text-sm text-red-500">{attendeesError}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Event Category</Label>
                 <Input
-                  id="attendees"
-                  name="attendees"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formData.attendees.toString()}
-                  onChange={(e) =>
-                    handleInputChange({
-                      ...e,
-                      target: {
-                        ...e.target,
-                        name: "attendees",
-                        value: e.target.value ? Number.parseInt(e.target.value, 10).toString() : "0",
-                      },
-                    })
-                  }
+                  id="category"
+                  name="category"
+                  placeholder="Enter event category (e.g., Academic, Social)"
+                  value={formData.category || ""}
+                  onChange={handleInputChange}
                 />
               </div>
             </div>
@@ -1162,18 +1256,67 @@ export default function CreateEventPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Visibility</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isPublic"
-                  checked={formData.isPublic}
-                  onCheckedChange={(checked) => handleCheckboxChange("isPublic", checked as boolean)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Input
+                  id="contactEmail"
+                  name="contactEmail"
+                  type="email"
+                  placeholder="Enter contact email"
+                  value={formData.contactEmail || ""}
+                  onChange={handleInputChange}
                 />
-                <Label htmlFor="isPublic" className="font-normal">
-                  Make this event public
-                </Label>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">Contact Phone</Label>
+                <Input
+                  id="contactPhone"
+                  name="contactPhone"
+                  placeholder="Enter contact phone"
+                  value={formData.contactPhone || ""}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Visibility & Settings</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isPublic"
+                    checked={formData.isPublic}
+                    onCheckedChange={(checked) => handleCheckboxChange("isPublic", checked as boolean)}
+                  />
+                  <Label htmlFor="isPublic" className="font-normal">
+                    Make this event public
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="requiresRegistration"
+                    checked={formData.requiresRegistration || false}
+                    onCheckedChange={(checked) => handleCheckboxChange("requiresRegistration", checked as boolean)}
+                  />
+                  <Label htmlFor="requiresRegistration" className="font-normal">
+                    Requires registration
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="additionalNotes">Additional Notes</Label>
+              <Textarea
+                id="additionalNotes"
+                name="additionalNotes"
+                placeholder="Enter any additional notes or requirements"
+                rows={3}
+                value={formData.additionalNotes || ""}
+                onChange={handleInputChange}
+              />
             </div>
           </CardContent>
 

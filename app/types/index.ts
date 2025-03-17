@@ -105,7 +105,7 @@ export interface Enrollment {
   grade?: string
 }
 
-// Event interface
+// Update the Event interface to include registration-related fields
 export interface Event {
   id: string
   title: string
@@ -113,12 +113,57 @@ export interface Event {
   type: string
   organizer: string
   location: string
+  facilityId?: string
   startDate: string
   startTime: string
   endDate: string
   endTime: string
   attendees: number
   status: string
+  isPublic?: boolean
+  resources?: string[]
+  category?: string
+  contactEmail?: string
+  contactPhone?: string
+  requiresRegistration?: boolean
+  additionalNotes?: string
+  confirmedAttendees?: number
+  registrationLink?: string
+  registrationFormFields?: RegistrationFormField[]
+  registeredAttendees?: RegisteredAttendee[]
+  attendeesList?: {
+    id: string
+    name: string
+    email: string
+    role: string
+    status: "confirmed" | "pending" | "declined"
+    registeredAt?: string
+  }[]
+}
+
+// Add new interfaces for registration-related data
+export interface RegistrationFormField {
+  id: string
+  label: string
+  type: "text" | "email" | "tel" | "select" | "checkbox" | "textarea" | "date"
+  required: boolean
+  options?: string[] // For select fields
+  placeholder?: string
+}
+
+export interface RegisteredAttendee {
+  id: string
+  eventId: string
+  name: string
+  email: string
+  phone?: string
+  organization?: string
+  registrationDate: string
+  status: "pending" | "confirmed" | "cancelled" | "attended"
+  responses: Record<string, string> // Stores form field responses
+  specialRequirements?: string
+  checkInTime?: string
+  checkOutTime?: string
 }
 
 // Message interface
