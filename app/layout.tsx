@@ -5,6 +5,17 @@ import { Toaster } from "@/components/ui/toaster"
 import ErrorBoundary from "./components/error-boundary"
 import "./globals.css"
 
+// Add this metadata export
+export const metadata = {
+  title: "Campus Management System",
+  description: "A comprehensive system for managing campus resources",
+  icons: {
+    icon: "/favicon.ico", // Place this file in the public directory
+    apple: "/apple-icon.png", // Optional: for Apple devices
+  },
+    generator: 'v0.dev'
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -26,7 +37,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 
 import './globals.css'
-
-export const metadata = {
-      generator: 'v0.dev'
-    };

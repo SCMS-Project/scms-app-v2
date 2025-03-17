@@ -85,18 +85,29 @@ export default function Enrollments() {
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [courseSearchQuery, setCourseSearchQuery] = useState("")
 
+  // Add these state variables at the top of the component with the other state declarations
+  // This will help manage the dropdown state
+
+  const [studentDropdownOpen, setStudentDropdownOpen] = useState(false)
+  const [courseDropdownOpen, setCourseDropdownOpen] = useState(false)
+
+  // Enhance the filter functions to be more robust
+  // Replace the existing filteredStudents and filteredCourses with these improved versions:
+
   // Filter students based on search query
   const filteredStudents = students.filter(
     (student) =>
-      student.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
-      (student.email && student.email.toLowerCase().includes(studentSearchQuery.toLowerCase())),
+      student.name?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+      student.email?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+      (student.id && student.id.toLowerCase().includes(studentSearchQuery.toLowerCase())),
   )
 
   // Filter courses based on search query
   const filteredCourses = courses.filter(
     (course) =>
-      course.name.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-      (course.code && course.code.toLowerCase().includes(courseSearchQuery.toLowerCase())),
+      course.name?.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
+      course.code?.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
+      (course.id && course.id.toLowerCase().includes(courseSearchQuery.toLowerCase())),
   )
 
   const handleViewDetails = (enrollment: Enrollment) => {
@@ -250,6 +261,24 @@ export default function Enrollments() {
     }
   }, [isAddEnrollmentOpen])
 
+  // Add this useEffect to handle clicks outside the dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (studentDropdownOpen || courseDropdownOpen) {
+        const target = event.target as HTMLElement
+        if (!target.closest(".student-dropdown") && !target.closest(".course-dropdown")) {
+          setStudentDropdownOpen(false)
+          setCourseDropdownOpen(false)
+        }
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [studentDropdownOpen, courseDropdownOpen])
+
   // Filter enrollments based on search query
   const filteredEnrollments = enrollments.filter(
     (enrollment) =>
@@ -270,29 +299,42 @@ export default function Enrollments() {
     setCurrentPage(page)
   }
 
+  // Update the handleSelectChange function to be more robust
+  // Replace the existing handleSelectChange function with this improved version:
+
   // Handle select changes
   const handleSelectChange = (id: string, value: string) => {
     if (id === "studentId") {
       const student = students.find((s) => s.id === value)
-      setNewEnrollment((prev) => ({
-        ...prev,
-        [id]: value,
-        studentName: student?.name || "",
-      }))
+      if (student) {
+        setNewEnrollment((prev) => ({
+          ...prev,
+          [id]: value,
+          studentName: student.name || "",
+        }))
+        // Close the dropdown after selection
+        setStudentDropdownOpen(false)
+      }
     } else if (id === "courseId") {
       const course = courses.find((c) => c.id === value)
-      setNewEnrollment((prev) => ({
-        ...prev,
-        [id]: value,
-        courseName: course?.name || "",
-      }))
+      if (course) {
+        setNewEnrollment((prev) => ({
+          ...prev,
+          [id]: value,
+          courseName: course.name || "",
+        }))
+        // Close the dropdown after selection
+        setCourseDropdownOpen(false)
+      }
     } else if (id === "batchId") {
       const batch = batches.find((b) => b.id === value)
-      setNewEnrollment((prev) => ({
-        ...prev,
-        [id]: value,
-        batchName: batch?.name || "",
-      }))
+      if (batch) {
+        setNewEnrollment((prev) => ({
+          ...prev,
+          [id]: value,
+          batchName: batch.name || "",
+        }))
+      }
     } else {
       setNewEnrollment((prev) => ({ ...prev, [id]: value }))
     }
@@ -559,64 +601,96 @@ export default function Enrollments() {
                   <Label htmlFor="studentId" className="text-right">
                     Student
                   </Label>
-                  <div className="col-span-3 relative">
+                  <div className="col-span-3 relative student-dropdown">
                     <Input
                       type="text"
                       placeholder="Search students..."
                       className="mb-2"
                       value={studentSearchQuery}
-                      onChange={(e) => setStudentSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setStudentSearchQuery(e.target.value)
+                        setStudentDropdownOpen(true)
+                      }}
+                      onFocus={() => setStudentDropdownOpen(true)}
                     />
-                    <div className="max-h-[200px] overflow-y-auto border rounded-md">
-                      {filteredStudents.length > 0 ? (
-                        filteredStudents.map((student) => (
-                          <div
-                            key={student.id}
-                            className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                              newEnrollment.studentId === student.id ? "bg-blue-50" : ""
-                            }`}
-                            onClick={() => handleSelectChange("studentId", student.id)}
-                          >
-                            <div className="font-medium">{student.name}</div>
-                            <div className="text-xs text-gray-500">{student.email}</div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-gray-500">No students found</div>
-                      )}
-                    </div>
+                    {studentDropdownOpen && (
+                      <div className="max-h-[200px] overflow-y-auto border rounded-md absolute w-full bg-white z-10 shadow-md">
+                        {filteredStudents.length > 0 ? (
+                          filteredStudents.map((student) => (
+                            <div
+                              key={student.id}
+                              className={`p-2 cursor-pointer hover:bg-gray-100 ${
+                                newEnrollment.studentId === student.id ? "bg-blue-50" : ""
+                              }`}
+                              onClick={() => handleSelectChange("studentId", student.id)}
+                            >
+                              <div className="font-medium">{student.name}</div>
+                              <div className="text-xs text-gray-500">{student.email}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-gray-500">No students found</div>
+                        )}
+                      </div>
+                    )}
+                    {newEnrollment.studentId && !studentDropdownOpen && (
+                      <div className="p-2 border rounded-md bg-blue-50">
+                        <div className="font-medium">
+                          {students.find((s) => s.id === newEnrollment.studentId)?.name || "Selected Student"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {students.find((s) => s.id === newEnrollment.studentId)?.email || ""}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="courseId" className="text-right">
                     Course
                   </Label>
-                  <div className="col-span-3 relative">
+                  <div className="col-span-3 relative course-dropdown">
                     <Input
                       type="text"
                       placeholder="Search courses..."
                       className="mb-2"
                       value={courseSearchQuery}
-                      onChange={(e) => setCourseSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setCourseSearchQuery(e.target.value)
+                        setCourseDropdownOpen(true)
+                      }}
+                      onFocus={() => setCourseDropdownOpen(true)}
                     />
-                    <div className="max-h-[200px] overflow-y-auto border rounded-md">
-                      {filteredCourses.length > 0 ? (
-                        filteredCourses.map((course) => (
-                          <div
-                            key={course.id}
-                            className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                              newEnrollment.courseId === course.id ? "bg-blue-50" : ""
-                            }`}
-                            onClick={() => handleSelectChange("courseId", course.id)}
-                          >
-                            <div className="font-medium">{course.name}</div>
-                            <div className="text-xs text-gray-500">{course.code}</div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-gray-500">No courses found</div>
-                      )}
-                    </div>
+                    {courseDropdownOpen && (
+                      <div className="max-h-[200px] overflow-y-auto border rounded-md absolute w-full bg-white z-10 shadow-md">
+                        {filteredCourses.length > 0 ? (
+                          filteredCourses.map((course) => (
+                            <div
+                              key={course.id}
+                              className={`p-2 cursor-pointer hover:bg-gray-100 ${
+                                newEnrollment.courseId === course.id ? "bg-blue-50" : ""
+                              }`}
+                              onClick={() => handleSelectChange("courseId", course.id)}
+                            >
+                              <div className="font-medium">{course.name}</div>
+                              <div className="text-xs text-gray-500">{course.code}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-gray-500">No courses found</div>
+                        )}
+                      </div>
+                    )}
+                    {newEnrollment.courseId && !courseDropdownOpen && (
+                      <div className="p-2 border rounded-md bg-blue-50">
+                        <div className="font-medium">
+                          {courses.find((c) => c.id === newEnrollment.courseId)?.name || "Selected Course"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {courses.find((c) => c.id === newEnrollment.courseId)?.code || ""}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
