@@ -15,25 +15,66 @@ import { api } from "@/app/services/api"
 import type { Facility, Reservation } from "@/app/types"
 
 // Mock unavailable time slots data
-// This represents maintenance periods, holidays, or other reasons a facility might be unavailable
+// This represents maintenance periods, holidays, academic schedules, or events
 const mockUnavailableSlots = [
   {
     facilityId: "FAC001",
     date: new Date(new Date().setDate(new Date().getDate() + 1)), // Tomorrow
     timeSlots: ["10:00", "11:00", "12:00"], // Maintenance period
     reason: "Scheduled maintenance",
+    type: "maintenance",
   },
   {
     facilityId: "FAC002",
     date: new Date(new Date().setDate(new Date().getDate() + 2)), // Day after tomorrow
     timeSlots: ["14:00", "15:00"], // Staff meeting
     reason: "Staff meeting",
+    type: "administrative",
   },
   {
     facilityId: "FAC003",
     date: new Date(new Date().setDate(new Date().getDate() + 3)), // Three days from now
     allDay: true, // Entire day unavailable
     reason: "Facility cleaning",
+    type: "maintenance",
+  },
+  // Academic schedule reservations
+  {
+    facilityId: "FAC001",
+    date: new Date(new Date().setDate(new Date().getDate())), // Today
+    timeSlots: ["09:00", "10:00", "11:00"],
+    reason: "CS101: Introduction to Programming",
+    type: "academic",
+    courseCode: "CS101",
+    instructor: "Dr. Smith",
+  },
+  {
+    facilityId: "FAC002",
+    date: new Date(new Date().setDate(new Date().getDate() + 1)), // Tomorrow
+    timeSlots: ["13:00", "14:00"],
+    reason: "MATH201: Advanced Calculus",
+    type: "academic",
+    courseCode: "MATH201",
+    instructor: "Dr. Johnson",
+  },
+  // Event reservations
+  {
+    facilityId: "FAC003",
+    date: new Date(new Date().setDate(new Date().getDate() + 2)), // Day after tomorrow
+    timeSlots: ["16:00", "17:00", "18:00"],
+    reason: "Student Orientation",
+    type: "event",
+    eventId: "EVT001",
+    organizer: "Student Affairs",
+  },
+  {
+    facilityId: "FAC001",
+    date: new Date(new Date().setDate(new Date().getDate() + 4)), // Four days from now
+    timeSlots: ["14:00", "15:00", "16:00"],
+    reason: "Career Fair",
+    type: "event",
+    eventId: "EVT002",
+    organizer: "Career Services",
   },
   // Random unavailable slots for demo purposes
   ...Array.from({ length: 5 }, (_, i) => ({
@@ -44,6 +85,7 @@ const mockUnavailableSlots = [
       ["13:00", "14:00", "15:00"][Math.floor(Math.random() * 3)],
     ],
     reason: ["Emergency maintenance", "Private event", "Staff training"][Math.floor(Math.random() * 3)],
+    type: ["maintenance", "event", "administrative"][Math.floor(Math.random() * 3)],
   })),
 ]
 
@@ -142,7 +184,7 @@ export function AvailabilityView({ onReserve }: AvailabilityViewProps) {
     return !reservationConflict && !unavailabilityConflict
   }
 
-  // Get the reason for unavailability
+  // Get the reason for unavailability with context
   const getUnavailabilityReason = (day: Date, time: string) => {
     // Check for reservation conflict first
     const formattedDate = format(day, "yyyy-MM-dd")
@@ -169,7 +211,51 @@ export function AvailabilityView({ onReserve }: AvailabilityViewProps) {
         (slot.allDay || slot.timeSlots.includes(time)),
     )
 
-    return unavailableSlot ? unavailableSlot.reason : "Available"
+    if (unavailableSlot) {
+      // Return reason with context based on type
+      if (unavailableSlot.type === "academic") {
+        return `Class: ${unavailableSlot.reason}`
+      } else if (unavailableSlot.type === "event") {
+        return `Event: ${unavailableSlot.reason}`
+      } else {
+        return unavailableSlot.reason
+      }
+    }
+
+    return "Available"
+  }
+
+  // Add this function to get the appropriate CSS class based on unavailability type
+  const getUnavailabilityClass = (day: Date, time: string) => {
+    if (isTimeSlotAvailable(day, time)) {
+      return "border-green-500 bg-green-50 hover:bg-green-100 cursor-pointer"
+    }
+
+    // Find the unavailable slot
+    const unavailableSlot = mockUnavailableSlots.find(
+      (slot) =>
+        slot.facilityId === selectedFacility &&
+        isSameDay(slot.date, day) &&
+        (slot.allDay || slot.timeSlots.includes(time)),
+    )
+
+    if (unavailableSlot) {
+      switch (unavailableSlot.type) {
+        case "academic":
+          return "border-blue-500 bg-blue-50"
+        case "event":
+          return "border-purple-500 bg-purple-50"
+        case "maintenance":
+          return "border-red-500 bg-red-50"
+        case "administrative":
+          return "border-amber-500 bg-amber-50"
+        default:
+          return "border-red-500 bg-red-50"
+      }
+    }
+
+    // Default for other reservations
+    return "border-red-500 bg-red-50"
   }
 
   // Handle week navigation
@@ -352,9 +438,7 @@ export function AvailabilityView({ onReserve }: AvailabilityViewProps) {
                         <div
                           className={cn(
                             "flex items-center justify-center text-xs rounded-md border border-dashed",
-                            isTimeSlotAvailable(day, time)
-                              ? "border-green-500 bg-green-50 hover:bg-green-100 cursor-pointer"
-                              : "border-red-500 bg-red-50",
+                            getUnavailabilityClass(day, time),
                           )}
                           onClick={() => isTimeSlotAvailable(day, time) && handleReserve(day, time)}
                           title={getUnavailabilityReason(day, time)}
@@ -375,16 +459,28 @@ export function AvailabilityView({ onReserve }: AvailabilityViewProps) {
         </CardContent>
       </Card>
 
-      <div className="flex gap-2 items-center mt-2">
+      <div className="flex flex-wrap gap-2 items-center mt-2">
         <div className="flex items-center">
           <div className="w-4 h-4 rounded-sm bg-green-50 border border-dashed border-green-500 mr-2"></div>
           <span className="text-sm">Available</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 rounded-sm bg-red-50 border border-dashed border-red-500 mr-2"></div>
-          <span className="text-sm">Unavailable</span>
+          <div className="w-4 h-4 rounded-sm bg-blue-50 border border-dashed border-blue-500 mr-2"></div>
+          <span className="text-sm">Academic Schedule</span>
         </div>
-        <div className="text-xs text-muted-foreground ml-2">(Hover over slots to see unavailability reason)</div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded-sm bg-purple-50 border border-dashed border-purple-500 mr-2"></div>
+          <span className="text-sm">Event</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded-sm bg-red-50 border border-dashed border-red-500 mr-2"></div>
+          <span className="text-sm">Maintenance</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded-sm bg-amber-50 border border-dashed border-amber-500 mr-2"></div>
+          <span className="text-sm">Administrative</span>
+        </div>
+        <div className="text-xs text-muted-foreground ml-2">(Hover over slots to see details)</div>
       </div>
     </div>
   )
