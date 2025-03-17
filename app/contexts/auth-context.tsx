@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(testUser)
         localStorage.setItem("user", JSON.stringify(testUser))
-        router.push("/dashboard")
+        router.push("/dashboard/analytics")
         return Promise.resolve()
       }
 
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           setUser(loginUser)
           localStorage.setItem("user", JSON.stringify(loginUser))
-          router.push("/dashboard")
+          router.push("/dashboard/analytics")
           return Promise.resolve()
         }
       } catch (apiError) {
@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(fallbackUser)
         localStorage.setItem("user", JSON.stringify(fallbackUser))
-        router.push("/dashboard")
+        router.push("/dashboard/analytics")
         return Promise.resolve()
       }
 
@@ -178,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(newUser)
       localStorage.setItem("user", JSON.stringify(newUser))
-      router.push("/dashboard")
+      router.push("/dashboard/analytics")
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Registration failed"
       setError(errorMessage)

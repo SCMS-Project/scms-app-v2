@@ -11,7 +11,6 @@ import {
   Building2,
   Calendar,
   GraduationCap,
-  LayoutDashboard,
   Library,
   MessageSquare,
   Settings,
@@ -111,9 +110,9 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
     if (user?.role === ROLES.ADMIN) {
       return [
         {
-          title: "Dashboard",
-          href: "/dashboard",
-          icon: <LayoutDashboard className="h-5 w-5" />,
+          title: "Analytics",
+          href: "/dashboard/analytics",
+          icon: <BarChart3 className="h-5 w-5" />,
         },
         {
           title: "Users",
@@ -172,11 +171,6 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
           ],
         },
         {
-          title: "Analytics",
-          href: "/dashboard/analytics",
-          icon: <BarChart3 className="h-5 w-5" />,
-        },
-        {
           title: "Settings",
           href: "/dashboard/settings",
           icon: <Settings className="h-5 w-5" />,
@@ -188,9 +182,9 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
     if (user?.role === ROLES.STUDENT) {
       return [
         {
-          title: "Dashboard",
-          href: "/dashboard",
-          icon: <LayoutDashboard className="h-5 w-5" />,
+          title: "Analytics",
+          href: "/dashboard/analytics",
+          icon: <BarChart3 className="h-5 w-5" />,
         },
         {
           title: "Academics",
@@ -240,9 +234,9 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
     if (user?.role === ROLES.LECTURER) {
       return [
         {
-          title: "Dashboard",
-          href: "/dashboard",
-          icon: <LayoutDashboard className="h-5 w-5" />,
+          title: "Analytics",
+          href: "/dashboard/analytics",
+          icon: <BarChart3 className="h-5 w-5" />,
         },
         {
           title: "Academics",
@@ -291,9 +285,9 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
     // Default items if role is not determined
     return [
       {
-        title: "Dashboard",
-        href: "/dashboard",
-        icon: <LayoutDashboard className="h-5 w-5" />,
+        title: "Analytics",
+        href: "/dashboard/analytics",
+        icon: <BarChart3 className="h-5 w-5" />,
       },
       {
         title: "Events",

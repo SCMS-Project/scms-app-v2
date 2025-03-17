@@ -131,6 +131,7 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const [isMounted, setIsMounted] = useState(false)
 
   // Resource Utilization Analytics
   const [resourceUtilizationData, setResourceUtilizationData] = useState(defaultResourceUtilizationData)
@@ -153,6 +154,12 @@ export function AnalyticsDashboard() {
   const [schedulingEffectivenessData, setSchedulingEffectivenessData] = useState(defaultSchedulingEffectivenessData)
   const [cancellationPatternsData, setCancellationPatternsData] = useState([])
   const [timeSlotPopularityData, setTimeSlotPopularityData] = useState([])
+
+  // Set mounted state
+  useEffect(() => {
+    setIsMounted(true)
+    return () => setIsMounted(false)
+  }, [])
 
   // Fetch data on component mount
   useEffect(() => {
@@ -375,46 +382,6 @@ export function AnalyticsDashboard() {
         <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats?.totalStudents || 0}</div>
-            <p className="text-xs text-muted-foreground">Enrolled in various courses</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats?.totalCourses || 0}</div>
-            <p className="text-xs text-muted-foreground">Active courses this semester</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Lecturers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats?.totalLecturers || 0}</div>
-            <p className="text-xs text-muted-foreground">Teaching staff members</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Enrollments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats?.activeEnrollments || 0}</div>
-            <p className="text-xs text-muted-foreground">Current semester</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="resource-utilization" className="space-y-4">
         <TabsList className="grid grid-cols-4 w-full">
@@ -434,26 +401,28 @@ export function AnalyticsDashboard() {
                 <CardDescription>Monthly utilization percentage of campus resources</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={resourceUtilizationData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="classrooms" fill="#8884d8" name="Classrooms" />
-                    <Bar dataKey="labs" fill="#82ca9d" name="Labs" />
-                    <Bar dataKey="library" fill="#ffc658" name="Library" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={resourceUtilizationData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="classrooms" fill="#8884d8" name="Classrooms" />
+                      <Bar dataKey="labs" fill="#82ca9d" name="Labs" />
+                      <Bar dataKey="library" fill="#ffc658" name="Library" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -464,25 +433,27 @@ export function AnalyticsDashboard() {
                 <CardDescription>Most frequently borrowed resources</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={equipmentBorrowingTrends}
-                    layout="vertical"
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 60,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#8884d8" name="Borrow Count" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={equipmentBorrowingTrends}
+                      layout="vertical"
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 60,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="name" type="category" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#8884d8" name="Borrow Count" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -493,24 +464,26 @@ export function AnalyticsDashboard() {
                 <CardDescription>Busiest times for resource reservations</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={peakUsageHours}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area type="monotone" dataKey="usage" stroke="#8884d8" fill="#8884d8" name="Usage %" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart
+                      data={peakUsageHours}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="hour" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Area type="monotone" dataKey="usage" stroke="#8884d8" fill="#8884d8" name="Usage %" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -521,24 +494,26 @@ export function AnalyticsDashboard() {
                 <CardDescription>Double-booking and underutilized resources</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 10,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="utilization" name="Utilization %" type="number" />
-                    <YAxis dataKey="conflicts" name="Conflicts" type="number" />
-                    <ZAxis dataKey="resource" name="Resource" />
-                    <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                    <Legend />
-                    <Scatter name="Resources" data={resourceConflicts} fill="#8884d8" />
-                  </ScatterChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ScatterChart
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 10,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="utilization" name="Utilization %" type="number" />
+                      <YAxis dataKey="conflicts" name="Conflicts" type="number" />
+                      <ZAxis dataKey="resource" name="Resource" />
+                      <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+                      <Legend />
+                      <Scatter name="Resources" data={resourceConflicts} fill="#8884d8" />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -554,26 +529,28 @@ export function AnalyticsDashboard() {
                 <CardDescription>Comparison of registered vs. actual attendees</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={eventAttendanceData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 70,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="event" angle={-45} textAnchor="end" height={70} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="registered" fill="#8884d8" name="Registered" />
-                    <Bar dataKey="attended" fill="#82ca9d" name="Attended" />
-                    <Bar dataKey="capacity" fill="#ffc658" name="Capacity" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={eventAttendanceData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 70,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="event" angle={-45} textAnchor="end" height={70} />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="registered" fill="#8884d8" name="Registered" />
+                      <Bar dataKey="attended" fill="#82ca9d" name="Attended" />
+                      <Bar dataKey="capacity" fill="#ffc658" name="Capacity" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -584,32 +561,34 @@ export function AnalyticsDashboard() {
                 <CardDescription>Events with highest participation and satisfaction</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={popularEventsData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 70,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
-                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="attendees" fill="#8884d8" name="Attendees" />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="satisfaction"
-                      stroke="#82ca9d"
-                      name="Satisfaction (1-5)"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={popularEventsData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 70,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
+                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                      <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="attendees" fill="#8884d8" name="Attendees" />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="satisfaction"
+                        stroke="#82ca9d"
+                        name="Satisfaction (1-5)"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -620,29 +599,31 @@ export function AnalyticsDashboard() {
                 <CardDescription>Comparison across different event categories</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart outerRadius={90} data={eventTypeEngagement}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="type" />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar
-                      name="Avg. Attendance"
-                      dataKey="avgAttendance"
-                      stroke="#8884d8"
-                      fill="#8884d8"
-                      fillOpacity={0.6}
-                    />
-                    <Radar
-                      name="Total Events"
-                      dataKey="totalEvents"
-                      stroke="#82ca9d"
-                      fill="#82ca9d"
-                      fillOpacity={0.6}
-                    />
-                    <Legend />
-                    <Tooltip />
-                  </RadarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RadarChart outerRadius={90} data={eventTypeEngagement}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="type" />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                      <Radar
+                        name="Avg. Attendance"
+                        dataKey="avgAttendance"
+                        stroke="#8884d8"
+                        fill="#8884d8"
+                        fillOpacity={0.6}
+                      />
+                      <Radar
+                        name="Total Events"
+                        dataKey="totalEvents"
+                        stroke="#82ca9d"
+                        fill="#82ca9d"
+                        fillOpacity={0.6}
+                      />
+                      <Legend />
+                      <Tooltip />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -653,26 +634,28 @@ export function AnalyticsDashboard() {
                 <CardDescription>Registered attendees who didn't show up</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={dropoffRates}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 70,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="event" angle={-45} textAnchor="end" height={70} />
-                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="registeredOnly" fill="#8884d8" name="No-shows" />
-                    <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#82ca9d" name="Drop-off %" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={dropoffRates}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 70,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="event" angle={-45} textAnchor="end" height={70} />
+                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                      <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="registeredOnly" fill="#8884d8" name="No-shows" />
+                      <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#82ca9d" name="Drop-off %" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -688,27 +671,29 @@ export function AnalyticsDashboard() {
                 <CardDescription>Student engagement in campus activities</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={studentParticipationData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="students"
-                      nameKey="level"
-                    >
-                      {studentParticipationData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value, name, props) => [`${value} students`, props.payload.level]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={studentParticipationData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={true}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="students"
+                        nameKey="level"
+                      >
+                        {studentParticipationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name, props) => [`${value} students`, props.payload.level]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -719,24 +704,26 @@ export function AnalyticsDashboard() {
                 <CardDescription>Faculty participation in campus activities</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={facultyInvolvementData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="department" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="involvement" fill="#8884d8" name="Involvement %" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={facultyInvolvementData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="department" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="involvement" fill="#8884d8" name="Involvement %" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -747,26 +734,28 @@ export function AnalyticsDashboard() {
                 <CardDescription>Student-teacher interaction via various tools</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={collaborationMetricsData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="metric" />
-                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="count" fill="#8884d8" name="Total Count" />
-                    <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#82ca9d" name="Growth %" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={collaborationMetricsData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="metric" />
+                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                      <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="count" fill="#8884d8" name="Total Count" />
+                      <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#82ca9d" name="Growth %" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -782,26 +771,34 @@ export function AnalyticsDashboard() {
                 <CardDescription>Conflicts and room utilization efficiency</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={schedulingEffectivenessData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                    <Tooltip />
-                    <Legend />
-                    <Line yAxisId="left" type="monotone" dataKey="conflicts" stroke="#8884d8" name="Conflicts" />
-                    <Line yAxisId="right" type="monotone" dataKey="utilization" stroke="#82ca9d" name="Utilization %" />
-                  </LineChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart
+                      data={schedulingEffectivenessData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" />
+                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                      <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                      <Tooltip />
+                      <Legend />
+                      <Line yAxisId="left" type="monotone" dataKey="conflicts" stroke="#8884d8" name="Conflicts" />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="utilization"
+                        stroke="#82ca9d"
+                        name="Utilization %"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -812,27 +809,29 @@ export function AnalyticsDashboard() {
                 <CardDescription>Reasons for schedule changes</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={cancellationPatternsData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                      nameKey="reason"
-                    >
-                      {cancellationPatternsData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value, name, props) => [`${value} cancellations`, props.payload.reason]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={cancellationPatternsData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={true}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                        nameKey="reason"
+                      >
+                        {cancellationPatternsData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name, props) => [`${value} cancellations`, props.payload.reason]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -843,24 +842,26 @@ export function AnalyticsDashboard() {
                 <CardDescription>Preferred time slots for classes and events</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={timeSlotPopularityData}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="slot" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="popularity" fill="#8884d8" name="Popularity %" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={timeSlotPopularityData}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="slot" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="popularity" fill="#8884d8" name="Popularity %" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
