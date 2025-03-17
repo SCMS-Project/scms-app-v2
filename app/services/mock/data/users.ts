@@ -142,5 +142,5 @@ export const mockUsers: User[] = [
     profileImage: "/placeholder.svg?height=40&width=40",
     lastLogin: "2023-09-14T15:10:00Z",
   },
-];
+]
 

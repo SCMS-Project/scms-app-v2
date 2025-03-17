@@ -200,5 +200,5 @@ export const mockSubjects: Subject[] = [
     department: "School of Management & Law",
     courseIds: ["LAW401"],
   },
-];
+]
 

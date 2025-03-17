@@ -145,5 +145,5 @@ export const mockCourses: Course[] = [
     status: "Active",
     subjectIds: ["SUB021", "SUB022"],
   },
-];
+]
 

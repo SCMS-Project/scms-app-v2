@@ -122,5 +122,5 @@ export const mockStudents: Student[] = [
     email: "y.edirisinghe@example.com",
     department: "Computer Science",
   },
-];
+]
 

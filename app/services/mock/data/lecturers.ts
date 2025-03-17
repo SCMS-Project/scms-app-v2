@@ -50,5 +50,5 @@ export const mockLecturers: Lecturer[] = [
     position: "Associate Professor",
     courses: 3,
   },
-];
+]
 

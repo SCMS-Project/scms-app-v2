@@ -110,5 +110,5 @@ export const mockEnrollments = [
     enrollmentDate: "2023-09-05",
     status: "Active",
   },
-];
+]
 
