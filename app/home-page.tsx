@@ -24,7 +24,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16 md:py-24">
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">Campus Management System</h1>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">Smart Campus Management System</h1>
           <p className="mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
             A comprehensive solution for educational institutions to manage students, faculty, courses, and resources
             efficiently.
