@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon, Plus, Clock, MapPin, Users, LinkIcon, EyeIcon, UsersIcon } from "lucide-react"
+import { CalendarIcon, Plus, Clock, MapPin, Users, LinkIcon, UsersIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -351,7 +351,7 @@ export default function EventsPage() {
                   <TableRow>
                     <TableHead>Event</TableHead>
                     <TableHead className="min-w-[180px]">Date & Time</TableHead>
-                    <TableHead>Location</TableHead>
+                    <TableHead>Facility</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Organizer</TableHead>
@@ -459,14 +459,7 @@ export default function EventsPage() {
                               >
                                 <LinkIcon className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePreviewForm(event.id)}
-                                title="Preview registration form"
-                              >
-                                <EyeIcon className="h-4 w-4" />
-                              </Button>
+
                               <Button
                                 variant="outline"
                                 size="sm"

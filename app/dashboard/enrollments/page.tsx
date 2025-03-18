@@ -1,8 +1,10 @@
 "use client"
 
+import { DialogTrigger } from "@/components/ui/dialog"
+
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -95,20 +96,24 @@ export default function Enrollments() {
   // Replace the existing filteredStudents and filteredCourses with these improved versions:
 
   // Filter students based on search query
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
-      student.email?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
-      (student.id && student.id.toLowerCase().includes(studentSearchQuery.toLowerCase())),
-  )
+  const filteredStudents = useMemo(() => {
+    return students.filter(
+      (student) =>
+        student.name?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+        student.email?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+        (student.id && student.id.toLowerCase().includes(studentSearchQuery.toLowerCase())),
+    )
+  }, [students, studentSearchQuery])
 
   // Filter courses based on search query
-  const filteredCourses = courses.filter(
-    (course) =>
-      course.name?.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-      course.code?.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-      (course.id && course.id.toLowerCase().includes(courseSearchQuery.toLowerCase())),
-  )
+  const filteredCourses = useMemo(() => {
+    return courses.filter(
+      (course) =>
+        course.name?.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
+        course.code?.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
+        (course.id && course.id.toLowerCase().includes(courseSearchQuery.toLowerCase())),
+    )
+  }, [courses, courseSearchQuery])
 
   const handleViewDetails = (enrollment: Enrollment) => {
     setSelectedEnrollment(enrollment)
@@ -280,19 +285,23 @@ export default function Enrollments() {
   }, [studentDropdownOpen, courseDropdownOpen])
 
   // Filter enrollments based on search query
-  const filteredEnrollments = enrollments.filter(
-    (enrollment) =>
-      enrollment.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      enrollment.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      enrollment.batchName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      enrollment.id.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredEnrollments = useMemo(() => {
+    return enrollments.filter(
+      (enrollment) =>
+        enrollment.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        enrollment.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        enrollment.batchName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        enrollment.id.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+  }, [enrollments, searchQuery])
 
   // Calculate total pages
   const totalPages = Math.ceil(filteredEnrollments.length / itemsPerPage)
 
   // Get current enrollments for the current page
-  const currentEnrollments = filteredEnrollments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const currentEnrollments = useMemo(() => {
+    return filteredEnrollments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  }, [filteredEnrollments, currentPage, itemsPerPage])
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -322,9 +331,19 @@ export default function Enrollments() {
           ...prev,
           [id]: value,
           courseName: course.name || "",
+          // Reset the batch selection when course changes
+          batchId: "",
+          batchName: "",
         }))
         // Close the dropdown after selection
         setCourseDropdownOpen(false)
+
+        // Fetch batches for this course
+        if (value) {
+          fetchBatchesByCourse(value)
+        } else {
+          setBatches([])
+        }
       }
     } else if (id === "batchId") {
       const batch = batches.find((b) => b.id === value)
@@ -551,6 +570,57 @@ export default function Enrollments() {
     return items
   }
 
+  // Function to fetch batches for a specific course
+  const fetchBatchesByCourse = async (courseId: string) => {
+    if (!apiStatus.batches || typeof api.getBatchesByCourse !== "function") {
+      // Check if we have the specific API method
+      if (typeof api.getBatches === "function") {
+        // Fallback to getting all batches and filtering
+        try {
+          setLoading(true)
+          const allBatches = await api.getBatches()
+          const courseBatches = allBatches.filter((batch) => batch.courseId === courseId)
+          setBatches(courseBatches)
+        } catch (err) {
+          console.error("Error fetching batches:", err)
+          toast({
+            title: "Error",
+            description: "Failed to fetch batch data for this course.",
+            variant: "destructive",
+          })
+          setBatches([]) // Reset batches on error
+        } finally {
+          setLoading(false)
+        }
+        return
+      }
+
+      toast({
+        title: "API Error",
+        description: "The batch API is not available.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setLoading(true)
+      // Use the specific API method to get batches for this course
+      const courseBatches = await api.getBatchesByCourse(courseId)
+      setBatches(courseBatches)
+    } catch (err) {
+      console.error("Error fetching batches for course:", err)
+      toast({
+        title: "Error",
+        description: "Failed to fetch batch data for this course.",
+        variant: "destructive",
+      })
+      setBatches([]) // Reset batches on error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {error && (
@@ -697,18 +767,96 @@ export default function Enrollments() {
                   <Label htmlFor="batchId" className="text-right">
                     Batch
                   </Label>
-                  <Select onValueChange={(value) => handleSelectChange("batchId", value)}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select batch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {batches.map((batch) => (
-                        <SelectItem key={batch.id} value={batch.id}>
-                          {batch.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="col-span-3 relative">
+                    <Select
+                      onValueChange={(value) => handleSelectChange("batchId", value)}
+                      onOpenChange={(open) => {
+                        // When dropdown opens, fetch fresh batch data from API
+                        if (open) {
+                          setLoading(true)
+                          // If a course is selected, get batches for that course
+                          if (newEnrollment.courseId && apiStatus.batches) {
+                            if (typeof api.getBatchesByCourse === "function") {
+                              api
+                                .getBatchesByCourse(newEnrollment.courseId)
+                                .then((data) => {
+                                  setBatches(data)
+                                  setLoading(false)
+                                })
+                                .catch((err) => {
+                                  console.error("Error fetching batches for course:", err)
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to fetch batch data from API.",
+                                    variant: "destructive",
+                                  })
+                                  setLoading(false)
+                                })
+                            } else if (typeof api.getBatches === "function") {
+                              // Fallback to getting all batches and filtering
+                              api
+                                .getBatches()
+                                .then((data) => {
+                                  const courseBatches = data.filter(
+                                    (batch) => batch.courseId === newEnrollment.courseId,
+                                  )
+                                  setBatches(courseBatches)
+                                  setLoading(false)
+                                })
+                                .catch((err) => {
+                                  console.error("Error fetching batches:", err)
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to fetch batch data from API.",
+                                    variant: "destructive",
+                                  })
+                                  setLoading(false)
+                                })
+                            }
+                          } else if (apiStatus.batches && typeof api.getBatches === "function") {
+                            // If no course selected, get all batches
+                            api
+                              .getBatches()
+                              .then((data) => {
+                                setBatches(data)
+                                setLoading(false)
+                              })
+                              .catch((err) => {
+                                console.error("Error fetching batches:", err)
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to fetch batch data from API.",
+                                  variant: "destructive",
+                                })
+                                setLoading(false)
+                              })
+                          } else {
+                            setLoading(false)
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder={loading ? "Loading batches from API..." : "Select batch"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {batches.length > 0 ? (
+                          batches.map((batch) => (
+                            <SelectItem key={batch.id} value={batch.id}>
+                              {batch.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-batches" disabled>
+                            {loading ? "Fetching batches..." : "No batches available"}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {newEnrollment.courseId && batches.length === 0 && !loading && (
+                      <p className="text-xs text-amber-600 mt-1">No batches found for this course in the API.</p>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="enrollmentDate" className="text-right">
