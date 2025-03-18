@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { ROLES } from "@/app/constants/roles"
 
 // Mock user data for development
 const MOCK_USERS = [
@@ -11,7 +12,7 @@ const MOCK_USERS = [
     name: "Admin User",
     email: "admin@example.com",
     password: "password123",
-    role: "Administrator",
+    role: ROLES.ADMIN,
     image: "/placeholder.svg?height=32&width=32",
   },
   {
@@ -19,7 +20,7 @@ const MOCK_USERS = [
     name: "John Lecturer",
     email: "lecturer@campus.edu",
     password: "password123",
-    role: "Lecturer",
+    role: ROLES.LECTURER,
     image: "/placeholder.svg?height=32&width=32",
   },
   {
@@ -27,7 +28,7 @@ const MOCK_USERS = [
     name: "Jane Student",
     email: "student@campus.edu",
     password: "password123",
-    role: "Student",
+    role: ROLES.STUDENT,
     image: "/placeholder.svg?height=32&width=32",
   },
 ]

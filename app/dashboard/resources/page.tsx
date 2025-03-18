@@ -766,10 +766,10 @@ export default function Resources() {
           <CardDescription>View and manage all campus resources</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="list" className="space-y-4">
+          <Tabs defaultValue={user?.role === "admin" ? "list" : "weekly"} className="space-y-4">
             <div className="flex justify-between items-center">
               <TabsList>
-                <TabsTrigger value="list">List View</TabsTrigger>
+                {user?.role === "admin" && <TabsTrigger value="list">List View</TabsTrigger>}
                 <TabsTrigger value="weekly">Weekly Availability</TabsTrigger>
               </TabsList>
 

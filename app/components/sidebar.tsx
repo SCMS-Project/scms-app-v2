@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Bookmark,
   CalendarDays,
+  LockIcon,
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -347,6 +348,7 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
             toggleExpand={toggleExpand}
             isActive={isActive}
             isCategoryActive={isCategoryActive}
+            user={user}
           />
         </SheetContent>
       </Sheet>
@@ -367,6 +369,7 @@ export default function Sidebar({ className, isOpen, onOpenChange }: SidebarProp
           toggleExpand={toggleExpand}
           isActive={isActive}
           isCategoryActive={isCategoryActive}
+          user={user}
         />
       </div>
     </>
@@ -381,6 +384,7 @@ interface SidebarNavProps {
   toggleExpand: (title: string) => void
   isActive: (href: string) => boolean
   isCategoryActive: (items: NavItem[]) => boolean
+  user?: any
 }
 
 function MobileSidebar({
@@ -390,6 +394,7 @@ function MobileSidebar({
   toggleExpand,
   isActive,
   isCategoryActive,
+  user,
 }: SidebarNavProps) {
   return (
     <div className="flex h-full flex-col gap-2">
@@ -466,6 +471,7 @@ function DesktopSidebar({
   toggleExpand,
   isActive,
   isCategoryActive,
+  user,
 }: SidebarNavProps) {
   return (
     <div className="h-full overflow-hidden">
@@ -501,12 +507,25 @@ function DesktopSidebar({
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          toggleExpand(item.title)
+                          // Allow both admin and lecturer users to toggle categories
+                          if (
+                            user?.role === ROLES.ADMIN ||
+                            user?.role === ROLES.STUDENT ||
+                            user?.role === ROLES.LECTURER
+                          ) {
+                            toggleExpand(item.title)
+                          }
                         }}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                          "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium",
+                          user?.role === ROLES.ADMIN || user?.role === ROLES.STUDENT || user?.role === ROLES.LECTURER
+                            ? "hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                            : "cursor-default",
                           isCategoryActive(item.items) ? "bg-accent/50 text-accent-foreground" : "transparent",
                         )}
+                        disabled={
+                          !(user?.role === ROLES.ADMIN || user?.role === ROLES.STUDENT || user?.role === ROLES.LECTURER)
+                        }
                       >
                         <div className="flex items-center gap-3">
                           {item.icon}
@@ -542,20 +561,39 @@ function DesktopSidebar({
               ) : (
                 <Tooltip key={index}>
                   <TooltipTrigger asChild>
-                    <Link
-                      href={item.href || "#"}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                        isActive(item.href || "") ? "bg-accent text-accent-foreground" : "transparent",
-                        isCollapsed && "justify-center px-2",
-                      )}
-                    >
-                      {item.icon}
-                      {!isCollapsed && <span>{item.title}</span>}
-                      {isCollapsed && <span className="sr-only">{item.title}</span>}
-                    </Link>
+                    {user?.role === ROLES.ADMIN || user?.role === ROLES.STUDENT || user?.role === ROLES.LECTURER ? (
+                      <Link
+                        href={item.href || "#"}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                          isActive(item.href || "") ? "bg-accent text-accent-foreground" : "transparent",
+                          isCollapsed && "justify-center px-2",
+                        )}
+                      >
+                        {item.icon}
+                        {!isCollapsed && <span>{item.title}</span>}
+                        {isCollapsed && <span className="sr-only">{item.title}</span>}
+                      </Link>
+                    ) : (
+                      <div
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground",
+                          isCollapsed && "justify-center px-2",
+                        )}
+                      >
+                        <LockIcon className="h-5 w-5" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                        {isCollapsed && <span className="sr-only">{item.title}</span>}
+                      </div>
+                    )}
                   </TooltipTrigger>
-                  {isCollapsed && <TooltipContent side="right">{item.title}</TooltipContent>}
+                  {isCollapsed && (
+                    <TooltipContent side="right">
+                      {item.title}{" "}
+                      {!(user?.role === ROLES.ADMIN || user?.role === ROLES.STUDENT || user?.role === ROLES.LECTURER) &&
+                        "(Restricted Access)"}
+                    </TooltipContent>
+                  )}
                 </Tooltip>
               ),
             )}

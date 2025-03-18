@@ -18,7 +18,7 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, Check, ChevronsUpDown, AlertCircle, Clock, Search, X } from "lucide-react"
+import { CalendarIcon, Check, ChevronsUpDown, AlertCircle, Clock, Search, X, LockIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/app/services/api"
 import type { Facility, ScheduleEvent, Course, Lecturer } from "@/app/types"
@@ -26,6 +26,9 @@ import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import React from "react"
+import { useAuth } from "@/app/contexts/auth-context"
+import { ROLES } from "@/app/constants/roles"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Update the form schema to remove courseCode
 const formSchema = z.object({
@@ -200,6 +203,7 @@ export function CreateScheduleForm({ onScheduleCreated }: CreateScheduleFormProp
   }>({})
   const [courses, setCourses] = useState<Course[]>([])
   const [lecturers, setLecturers] = useState<Lecturer[]>([])
+  const { user } = useAuth()
 
   // Lecturer selector state
   const [isLecturerDropdownOpen, setIsLecturerDropdownOpen] = useState(false)
@@ -208,6 +212,9 @@ export function CreateScheduleForm({ onScheduleCreated }: CreateScheduleFormProp
 
   // Add this with the other refs
   const facilityContainerRef = useRef<HTMLDivElement>(null)
+
+  // Check if user has permission to create schedules
+  const canCreateSchedule = user?.role === ROLES.ADMIN || user?.role === ROLES.LECTURER
 
   // Handle click outside to close facility dropdown
   useEffect(() => {
@@ -685,10 +692,26 @@ export function CreateScheduleForm({ onScheduleCreated }: CreateScheduleFormProp
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          Create Academic Schedule
-        </Button>
+        {canCreateSchedule ? (
+          <Button>
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            Create Academic Schedule
+          </Button>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled className="cursor-not-allowed opacity-70">
+                  <LockIcon className="mr-2 h-4 w-4" />
+                  Create Academic Schedule
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Only administrators and lecturers can create schedules</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>

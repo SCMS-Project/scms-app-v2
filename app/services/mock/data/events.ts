@@ -5,7 +5,8 @@ export const mockEvents: Event[] = [
   {
     id: "event-001",
     title: "ESOFT Student Orientation 2025",
-    description: "Welcome session for new students, including a campus tour and an introduction to ESOFT's academic programs.",
+    description:
+      "Welcome session for new students, including a campus tour and an introduction to ESOFT's academic programs.",
     type: "Academic",
     organizer: "Student Affairs Office",
     facility: "Main Auditorium (MB-AUD)",
@@ -27,7 +28,8 @@ export const mockEvents: Event[] = [
   {
     id: "event-002",
     title: "ESOFT Career Fair 2025",
-    description: "Annual career fair featuring top Sri Lankan and international employers, offering job and internship opportunities.",
+    description:
+      "Annual career fair featuring top Sri Lankan and international employers, offering job and internship opportunities.",
     type: "Career",
     organizer: "Career Development Center",
     facility: "ESOFT Conference Hall A (CH-A)",
@@ -48,7 +50,8 @@ export const mockEvents: Event[] = [
   {
     id: "event-003",
     title: "Tech Workshop: AI & Machine Learning Basics",
-    description: "A hands-on workshop covering fundamentals of artificial intelligence and practical applications of machine learning.",
+    description:
+      "A hands-on workshop covering fundamentals of artificial intelligence and practical applications of machine learning.",
     type: "Workshop",
     organizer: "School of Computing",
     facility: "Computer Lab (E8-3/4)",
@@ -69,7 +72,8 @@ export const mockEvents: Event[] = [
   {
     id: "event-004",
     title: "ESOFT Alumni Networking Night",
-    description: "An exclusive networking session for alumni and current students to foster career and academic connections.",
+    description:
+      "An exclusive networking session for alumni and current students to foster career and academic connections.",
     type: "Social",
     organizer: "Alumni Association",
     facility: "ESOFT Lounge (E6-1)",
@@ -172,7 +176,7 @@ export const mockEvents: Event[] = [
     requiresRegistration: true,
     additionalNotes: "Participants must register before February 20.",
   },
-];
+]
 
 // Event Announcements
 export const eventAnnouncements = [
@@ -187,7 +191,8 @@ export const eventAnnouncements = [
     id: "announce-002",
     eventId: "event-002",
     title: "ESOFT Career Fair 2025",
-    message: "Top employers from Sri Lanka and beyond are participating in the Career Fair on January 20. Don't miss out!",
+    message:
+      "Top employers from Sri Lanka and beyond are participating in the Career Fair on January 20. Don't miss out!",
     date: "2025-01-10",
   },
   {
@@ -201,7 +206,8 @@ export const eventAnnouncements = [
     id: "announce-004",
     eventId: "event-005",
     title: "Research Symposium: Call for Papers",
-    message: "Faculty and graduate students are invited to submit research papers for the ESOFT Research Symposium 2025.",
+    message:
+      "Faculty and graduate students are invited to submit research papers for the ESOFT Research Symposium 2025.",
     date: "2025-02-01",
   },
   {
@@ -211,9 +217,7 @@ export const eventAnnouncements = [
     message: "Due to high demand, the Future of Digital Education lecture will be held in Lecture Hall E5-5.",
     date: "2025-02-15",
   },
-];
-
-
+]
 
 // Event Resources
 export const eventResources = [

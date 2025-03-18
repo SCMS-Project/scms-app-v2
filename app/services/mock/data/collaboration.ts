@@ -81,7 +81,7 @@ export const mockCollaborationGroups = [
       },
     ],
   },
-];
+]
 
 // Simple array of messages for each group
 export const mockCollaborationMessages = [
@@ -127,7 +127,7 @@ export const mockCollaborationMessages = [
     time: "11:30 AM",
     content: "Hello team! I've created a shared document for our marketing strategy project.",
   },
-];
+]
 
 // Files shared in each group
 export const mockCollaborationFiles = [
@@ -152,7 +152,7 @@ export const mockCollaborationFiles = [
     size: "5.6 MB",
     date: "2023-09-14",
   },
-];
+]
 
 // Tasks for each group
 export const mockCollaborationTasks = [
@@ -196,5 +196,5 @@ export const mockCollaborationTasks = [
     status: "In Progress",
     assignee: "Supun Ratnayake",
   },
-];
+]
 

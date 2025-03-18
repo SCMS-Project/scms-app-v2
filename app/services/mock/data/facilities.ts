@@ -82,5 +82,5 @@ export const mockFacilities: Facility[] = [
     capacity: 30,
     status: "Operational",
   },
-];
+]
 

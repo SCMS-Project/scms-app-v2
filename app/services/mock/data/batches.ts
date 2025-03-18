@@ -99,5 +99,5 @@ export const mockBatches = [
     students: 0,
     status: "Upcoming",
   },
-];
+]
 
