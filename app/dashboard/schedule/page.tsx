@@ -955,41 +955,6 @@ export default function SchedulePage() {
               </Card>
             </div>
           )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Overview</CardTitle>
-              <CardDescription>Your complete weekly schedule at a glance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="dark:border-gray-800">
-                      <TableHead className="w-[100px] dark:text-gray-400">Time</TableHead>
-                      <TableHead className="dark:text-gray-400">Monday</TableHead>
-                      <TableHead className="dark:text-gray-400">Tuesday</TableHead>
-                      <TableHead className="dark:text-gray-400">Wednesday</TableHead>
-                      <TableHead className="dark:text-gray-400">Thursday</TableHead>
-                      <TableHead className="dark:text-gray-400">Friday</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {generateTimeSlots().map((timeSlot) => (
-                      <TableRow key={timeSlot} className="dark:border-gray-800">
-                        <TableCell className="font-medium dark:text-gray-400">{timeSlot}</TableCell>
-                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => (
-                          <TableCell key={day} className="dark:border-gray-800">
-                            {renderScheduleCell(day, timeSlot)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="registration" className="space-y-4">

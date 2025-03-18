@@ -142,7 +142,7 @@ export default function SettingsPage() {
             </CardHeader>
             <Form {...profileForm}>
               <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 max-w-3xl">
                   <FormField
                     control={profileForm.control}
                     name="name"
@@ -212,7 +212,7 @@ export default function SettingsPage() {
             </CardHeader>
             <Form {...accountForm}>
               <form onSubmit={accountForm.handleSubmit(onAccountSubmit)}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 max-w-3xl">
                   <FormField
                     control={accountForm.control}
                     name="language"
@@ -317,7 +317,7 @@ export default function SettingsPage() {
             </CardHeader>
             <Form {...securityForm}>
               <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 max-w-3xl">
                   <FormField
                     control={securityForm.control}
                     name="currentPassword"

@@ -22,13 +22,11 @@ export default function DashboardLayout({
           <Sidebar isOpen={isSidebarOpen} onOpenChange={setIsSidebarOpen} />
           <main
             className={cn(
-              "flex-1 overflow-auto transition-all duration-300",
+              "flex-1 overflow-auto transition-all duration-300 p-4 md:p-6",
               isSidebarOpen ? "lg:ml-64" : "lg:ml-[60px]",
             )}
           >
-            <div className="container mx-auto p-4 md:p-6 max-w-7xl bg-background rounded-lg shadow-sm border border-border/40 my-4 md:my-6">
-              {children}
-            </div>
+            {children}
           </main>
         </div>
       </div>
