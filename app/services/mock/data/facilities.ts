@@ -4,6 +4,30 @@ import type { Facility } from "@/app/types"
 export const mockFacilities: Facility[] = [
   {
     id: "FAC001",
+    code: "E5-5",
+    name: "Lecture Hall E5-5",
+    type: "Lecture Hall",
+    capacity: 60,
+    status: "Operational",
+  },
+  {
+    id: "FAC002",
+    code: "E6-1",
+    name: "Lecture Hall E6-1",
+    type: "Lecture Hall",
+    capacity: 50,
+    status: "Operational",
+  },
+  {
+    id: "FAC003",
+    code: "E8-3/4",
+    name: "Computer Lab E8-3/4",
+    type: "Computer Lab",
+    capacity: 45,
+    status: "Operational",
+  },
+  {
+    id: "FAC004",
     code: "MB-AUD",
     name: "Main Auditorium",
     type: "Auditorium",
@@ -11,7 +35,7 @@ export const mockFacilities: Facility[] = [
     status: "Operational",
   },
   {
-    id: "FAC002",
+    id: "FAC005",
     code: "CH-A",
     name: "Conference Hall A",
     type: "Conference Hall",
@@ -19,7 +43,7 @@ export const mockFacilities: Facility[] = [
     status: "Operational",
   },
   {
-    id: "FAC003",
+    id: "FAC006",
     code: "GYM-01",
     name: "Gymnasium",
     type: "Sports Facility",
@@ -27,12 +51,36 @@ export const mockFacilities: Facility[] = [
     status: "Operational",
   },
   {
-    id: "FAC004",
+    id: "FAC007",
     code: "LIB-01",
     name: "Library",
     type: "Study Area",
     capacity: 600,
     status: "Operational",
   },
-]
+  {
+    id: "FAC008",
+    code: "E6-5",
+    name: "Lecture Hall E6-5",
+    type: "Lecture Hall",
+    capacity: 55,
+    status: "Operational",
+  },
+  {
+    id: "FAC009",
+    code: "E3-4",
+    name: "Computer Lab E3-4",
+    type: "Computer Lab",
+    capacity: 40,
+    status: "Operational",
+  },
+  {
+    id: "FAC010",
+    code: "ISP-01",
+    name: "Internet Services and Protocols Lab",
+    type: "Networking Lab",
+    capacity: 30,
+    status: "Operational",
+  },
+];
 

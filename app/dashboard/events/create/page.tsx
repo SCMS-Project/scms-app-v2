@@ -85,7 +85,7 @@ export default function CreateEventPage() {
     description: "",
     type: "",
     organizer: "",
-    location: "",
+    facility: "",
     facilityId: "",
     startDate: "",
     startTime: "",
@@ -409,7 +409,7 @@ export default function CreateEventPage() {
     setFormData((prev) => ({
       ...prev,
       facilityId: facility.id,
-      location: `${facility.name} - ${facility.type || "General"}`,
+      facility: `${facility.name} - ${facility.type || "General"}`,
     }))
 
     // Check if attendees exceed the new facility's capacity

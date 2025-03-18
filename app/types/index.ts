@@ -111,7 +111,7 @@ export interface Event {
   description: string
   type: string
   organizer: string
-  location: string
+  facility: string
   facilityId?: string
   startDate: string
   startTime: string

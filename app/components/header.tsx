@@ -520,9 +520,7 @@ export default function Header({ setIsSidebarOpen, isSidebarOpen }: HeaderProps)
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {user.role === "admin" ? "Administrator" : user.role === "faculty" ? "Faculty" : "Student"}
-                  </p>
+                  <p className="text-xs font-medium text-muted-foreground">{user.role}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

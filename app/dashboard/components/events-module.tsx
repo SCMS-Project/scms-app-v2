@@ -117,7 +117,7 @@ export default function EventsModule() {
                   </div>
                   <div className="flex items-center">
                     <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>{event.location}</span>
+                    <span>{event.facility}</span>
                   </div>
                   <div className="flex items-center">
                     <Users className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -182,8 +182,8 @@ export default function EventsModule() {
                 <div className="col-span-2">{selectedEvent.organizer || "N/A"}</div>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <div className="font-medium">Location:</div>
-                <div className="col-span-2">{selectedEvent.location || "N/A"}</div>
+                <div className="font-medium">Facility:</div>
+                <div className="col-span-2">{selectedEvent.facility || "N/A"}</div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="font-medium">Start Date:</div>

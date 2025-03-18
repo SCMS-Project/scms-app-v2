@@ -118,7 +118,7 @@ export default function EventsPage() {
       (event) =>
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.location.toLowerCase().includes(searchTerm.toLowerCase()),
+        event.facility.toLowerCase().includes(searchTerm.toLowerCase()),
     )
     .filter((event) => filterType === "all" || event.type === filterType)
     .filter((event) => filterCategory === "all" || event.category === filterCategory)
@@ -387,7 +387,7 @@ export default function EventsPage() {
                       <TableCell>
                         <div className="flex items-center">
                           <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                          <span>{event.location || "N/A"}</span>
+                          <span>{event.facility || "N/A"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -803,7 +803,7 @@ export default function EventsPage() {
                   </div>
                   <div className="flex items-center">
                     <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>{selectedEvent.location || "N/A"}</span>
+                    <span>{selectedEvent.facility || "N/A"}</span>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Type</p>

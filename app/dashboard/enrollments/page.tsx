@@ -227,7 +227,11 @@ export default function Enrollments() {
           if (apiStatus.enrollments) setEnrollments(enrollmentsData)
           if (apiStatus.students) setStudents(studentsData)
           if (apiStatus.courses) setCourses(coursesData)
-          if (apiStatus.batches) setBatches(batchesData)
+
+          // Set batches if API is available
+          if (apiStatus.batches) {
+            setBatches(batchesData)
+          }
 
           // If we have some data but not all, update the error message
           if (!Object.values(apiStatus).every(Boolean)) {
@@ -337,13 +341,6 @@ export default function Enrollments() {
         }))
         // Close the dropdown after selection
         setCourseDropdownOpen(false)
-
-        // Fetch batches for this course
-        if (value) {
-          fetchBatchesByCourse(value)
-        } else {
-          setBatches([])
-        }
       }
     } else if (id === "batchId") {
       const batch = batches.find((b) => b.id === value)
@@ -570,52 +567,30 @@ export default function Enrollments() {
     return items
   }
 
-  // Function to fetch batches for a specific course
-  const fetchBatchesByCourse = async (courseId: string) => {
-    if (!apiStatus.batches || typeof api.getBatchesByCourse !== "function") {
-      // Check if we have the specific API method
-      if (typeof api.getBatches === "function") {
-        // Fallback to getting all batches and filtering
-        try {
-          setLoading(true)
-          const allBatches = await api.getBatches()
-          const courseBatches = allBatches.filter((batch) => batch.courseId === courseId)
-          setBatches(courseBatches)
-        } catch (err) {
-          console.error("Error fetching batches:", err)
-          toast({
-            title: "Error",
-            description: "Failed to fetch batch data for this course.",
-            variant: "destructive",
-          })
-          setBatches([]) // Reset batches on error
-        } finally {
-          setLoading(false)
-        }
-        return
-      }
-
-      toast({
-        title: "API Error",
-        description: "The batch API is not available.",
-        variant: "destructive",
-      })
-      return
-    }
-
+  // Function to fetch all batches
+  const fetchAllBatches = async () => {
     try {
       setLoading(true)
-      // Use the specific API method to get batches for this course
-      const courseBatches = await api.getBatchesByCourse(courseId)
-      setBatches(courseBatches)
+
+      if (apiStatus.batches && typeof api.getBatches === "function") {
+        // Use the API method if available
+        const allBatches = await api.getBatches()
+        setBatches(allBatches)
+      } else {
+        // Show error if API method is not available
+        toast({
+          title: "API Error",
+          description: "The batch retrieval API is not available.",
+          variant: "destructive",
+        })
+      }
     } catch (err) {
-      console.error("Error fetching batches for course:", err)
+      console.error("Error fetching batches:", err)
       toast({
         title: "Error",
-        description: "Failed to fetch batch data for this course.",
+        description: "Failed to fetch batch data.",
         variant: "destructive",
       })
-      setBatches([]) // Reset batches on error
     } finally {
       setLoading(false)
     }
@@ -655,7 +630,16 @@ export default function Enrollments() {
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>
-          <Dialog open={isAddEnrollmentOpen} onOpenChange={setIsAddEnrollmentOpen}>
+          <Dialog
+            open={isAddEnrollmentOpen}
+            onOpenChange={(open) => {
+              setIsAddEnrollmentOpen(open)
+              // Fetch all batches when the dialog opens
+              if (open) {
+                fetchAllBatches()
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-1" disabled={!apiStatus.enrollments || typeof api.createEnrollment !== "function"}>
                 <Plus className="h-4 w-4" /> Add Enrollment
@@ -771,73 +755,14 @@ export default function Enrollments() {
                     <Select
                       onValueChange={(value) => handleSelectChange("batchId", value)}
                       onOpenChange={(open) => {
-                        // When dropdown opens, fetch fresh batch data from API
+                        // When dropdown opens, ensure we have all batches
                         if (open) {
-                          setLoading(true)
-                          // If a course is selected, get batches for that course
-                          if (newEnrollment.courseId && apiStatus.batches) {
-                            if (typeof api.getBatchesByCourse === "function") {
-                              api
-                                .getBatchesByCourse(newEnrollment.courseId)
-                                .then((data) => {
-                                  setBatches(data)
-                                  setLoading(false)
-                                })
-                                .catch((err) => {
-                                  console.error("Error fetching batches for course:", err)
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to fetch batch data from API.",
-                                    variant: "destructive",
-                                  })
-                                  setLoading(false)
-                                })
-                            } else if (typeof api.getBatches === "function") {
-                              // Fallback to getting all batches and filtering
-                              api
-                                .getBatches()
-                                .then((data) => {
-                                  const courseBatches = data.filter(
-                                    (batch) => batch.courseId === newEnrollment.courseId,
-                                  )
-                                  setBatches(courseBatches)
-                                  setLoading(false)
-                                })
-                                .catch((err) => {
-                                  console.error("Error fetching batches:", err)
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to fetch batch data from API.",
-                                    variant: "destructive",
-                                  })
-                                  setLoading(false)
-                                })
-                            }
-                          } else if (apiStatus.batches && typeof api.getBatches === "function") {
-                            // If no course selected, get all batches
-                            api
-                              .getBatches()
-                              .then((data) => {
-                                setBatches(data)
-                                setLoading(false)
-                              })
-                              .catch((err) => {
-                                console.error("Error fetching batches:", err)
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to fetch batch data from API.",
-                                  variant: "destructive",
-                                })
-                                setLoading(false)
-                              })
-                          } else {
-                            setLoading(false)
-                          }
+                          fetchAllBatches()
                         }
                       }}
                     >
                       <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder={loading ? "Loading batches from API..." : "Select batch"} />
+                        <SelectValue placeholder={loading ? "Loading batches..." : "Select batch"} />
                       </SelectTrigger>
                       <SelectContent>
                         {batches.length > 0 ? (
@@ -853,9 +778,6 @@ export default function Enrollments() {
                         )}
                       </SelectContent>
                     </Select>
-                    {newEnrollment.courseId && batches.length === 0 && !loading && (
-                      <p className="text-xs text-amber-600 mt-1">No batches found for this course in the API.</p>
-                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">

@@ -268,17 +268,15 @@ export function ReservationForm({ onSuccess, onCancel, existingReservations }: R
               <FormItem className="flex flex-col">
                 <FormLabel>Date</FormLabel>
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                        disabled={loading}
-                      >
-                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
+                  <PopoverTrigger>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      type="button"
+                    >
+                      {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
