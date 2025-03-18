@@ -1,0 +1,100 @@
+import type { Reservation } from "@/app/types"
+
+// Mock Reservations Data
+export const mockReservations: Reservation[] = [
+  {
+    id: "R001",
+    facility: "Main Building",
+    room: "Auditorium",
+    purpose: "Orientation",
+    date: "2023-09-15",
+    time: "10:00 - 12:00",
+    requestedBy: "Dr. Robert Chen",
+    status: "Approved",
+  },
+  {
+    id: "R002",
+    facility: "Science Center",
+    room: "Lab 101",
+    purpose: "Chemistry Class",
+    date: "2023-09-16",
+    time: "14:00 - 16:00",
+    requestedBy: "Dr. Lisa Brown",
+    status: "Approved",
+  },
+  {
+    id: "R003",
+    facility: "Student Union",
+    room: "Conference Room",
+    purpose: "Student Council Meeting",
+    date: "2023-09-17",
+    time: "15:00 - 17:00",
+    requestedBy: "John Smith",
+    status: "Pending",
+  },
+  {
+    id: "R004",
+    facility: "Library",
+    room: "Study Room 3",
+    purpose: "Group Study",
+    date: "2023-09-18",
+    time: "13:00 - 15:00",
+    requestedBy: "Emma Johnson",
+    status: "Approved",
+  },
+  {
+    id: "R005",
+    facility: "Sports Complex",
+    room: "Basketball Court",
+    purpose: "Basketball Practice",
+    date: "2023-09-19",
+    time: "16:00 - 18:00",
+    requestedBy: "Michael Brown",
+    status: "Denied",
+  },
+  {
+    id: "R006",
+    facility: "Main Building",
+    room: "Room 101",
+    purpose: "Guest Lecture",
+    date: "2023-09-20",
+    time: "11:00 - 13:00",
+    requestedBy: "Dr. Sarah Johnson",
+    status: "Approved",
+  },
+]
+
+// Updated reservations
+export const mockReservationsUpdated = [
+  {
+    id: "res-1",
+    facility: "Main Building",
+    room: "Room 1",
+    date: "2023-12-15",
+    time: "09:00 - 11:00",
+    purpose: "Meeting",
+    requestedBy: "John Doe",
+    status: "Approved",
+  },
+  {
+    id: "res-2",
+    facility: "Library",
+    room: "Study Room 3",
+    date: "2023-12-16",
+    time: "14:00 - 16:00",
+    purpose: "Group Study",
+    requestedBy: "Jane Smith",
+    status: "Pending",
+  },
+  {
+    id: "res-3",
+    facility: "Sports Complex",
+    room: "Basketball Court",
+    date: "2023-12-17",
+    time: "16:00 - 18:00",
+    purpose: "Basketball Practice",
+    requestedBy: "Basketball Team",
+    status: "Approved",
+  },
+]
+
