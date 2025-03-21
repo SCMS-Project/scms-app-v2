@@ -71,9 +71,6 @@ export default function RegisterPage() {
 
     try {
       setIsSubmitting(true)
-
-      // In a real app, we would send the password to the server
-      // For this demo, we'll omit it from the user object
       const { confirmPassword, password, ...userData } = formData
 
       await register(userData)
